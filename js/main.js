@@ -6,7 +6,7 @@
 const CLUE_MESSAGE =
   "🎉 YOU FOUND IT!\n\n[PLACEHOLDER — insert real scavenger-hunt clue text here]";
 
-const NOT_FOUND_MESSAGE = "You didn't find the hidden clue.\nStart over to try again.";
+const NOT_FOUND_MESSAGE = "You made it to the end! But…\nYou didn't find the clue :(\nStart over to try again!";
 const FOUND_BUT_FINISHED_MESSAGE =
   "🏁 Level complete!\nYou already found the hidden clue — good luck with the rest of the hunt!";
 
@@ -239,8 +239,9 @@ function finishFlagpole() {
   setTimeout(() => { world.spawnFireworks(baseX - 20, baseY - 40); Sfx.firework(); }, 220);
   setTimeout(() => { world.spawnFireworks(baseX + 20, baseY - 30); Sfx.firework(); }, 440);
   const msg = game.clueFound ? FOUND_BUT_FINISHED_MESSAGE : NOT_FOUND_MESSAGE;
+  const btnLabel = game.clueFound ? 'PLAY AGAIN' : 'START OVER';
   setTimeout(() => {
-    UI.showMessage(msg, () => restartLevel(), 'PLAY AGAIN');
+    UI.showMessage(msg, () => restartLevel(), btnLabel);
   }, 900);
 }
 

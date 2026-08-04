@@ -97,8 +97,19 @@ body.secret-scene #btn-descend {
   margin: 0 0 6px 0;
   letter-spacing: 2px;
 }
-.start-card .sub { opacity: 0.8; margin: 0 0 26px 0; font-size: 14px; }
-.start-card .hint { opacity: 0.6; font-size: 12px; margin-top: 18px; }
+.start-card .sub { opacity: 0.8; margin: 0 0 22px 0; font-size: 14px; }
+.start-card .hint {
+  color: #fff;
+  font-weight: bold;
+  font-size: clamp(14px, 2.4vw, 19px);
+  line-height: 1.5;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(251,208,0,0.7);
+  border-radius: 8px;
+  padding: 12px 18px;
+  margin: 0 0 24px 0;
+  max-width: 340px;
+}
 #start-btn, #message-btn {
   font-family: inherit;
   font-size: clamp(16px, 3vw, 22px);
