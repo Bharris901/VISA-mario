@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-<title>Memphis Quest</title>
+<title>Memphis Mario</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -17,10 +17,10 @@
 
   <div id="start-overlay" class="overlay">
     <div class="start-card">
-      <h1>MEMPHIS QUEST</h1>
+      <h1>MEMPHIS MARIO</h1>
       <p class="sub">a hidden-secret adventure</p>
       <button id="start-btn">TAP TO START</button>
-      <p class="hint">Use the on-screen controls to move, jump, and explore.</p>
+      <p class="hint">Use the on screen controls to move, jump, and find your next clue 🔎</p>
     </div>
   </div>
 
@@ -30,7 +30,7 @@
     <div id="hud">
       <div class="hud-left">MARIO</div>
       <div id="hud-score" class="hud-num">000000</div>
-      <div id="hud-coins">🪙×<span id="hud-coin-count">00</span></div>
+      <div id="hud-coins"><canvas id="hud-coin-icon" width="16" height="16"></canvas>×<span id="hud-coin-count">00</span></div>
       <div class="hud-mid">
         <span id="hud-world">WORLD 1-1</span>
       </div>
@@ -48,7 +48,7 @@
         <div id="dpad-stick"></div>
       </div>
       <div id="action-zone" class="touch-zone">
-        <button id="btn-run" class="ctrl-btn">RUN</button>
+        <button id="btn-descend" class="ctrl-btn">DESCEND</button>
         <button id="btn-jump" class="ctrl-btn big">JUMP</button>
       </div>
     </div>
@@ -56,6 +56,7 @@
 
   <div id="message-overlay" class="overlay hidden">
     <div class="message-card">
+      <canvas id="message-icon" width="16" height="16" class="hidden"></canvas>
       <p id="message-text"></p>
       <button id="message-btn">CONTINUE</button>
     </div>

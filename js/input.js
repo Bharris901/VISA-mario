@@ -8,11 +8,11 @@
 const Input = {
   left: false,
   right: false,
-  down: false,
+  down: false,       // true while the virtual stick is dragged downward
+  descendHeld: false, // true while the dedicated DESCEND button is held
   up: false,
   jumpHeld: false,
   jumpPressed: false, // true only on the frame the jump was first pressed
-  runHeld: false,
   _jumpWasHeld: false,
 };
 
@@ -32,12 +32,10 @@ function initInput() {
   window.addEventListener('keydown', (e) => {
     if (keyMap[e.code]) { Input[keyMap[e.code]] = true; e.preventDefault(); }
     if (e.code === 'Space' || e.code === 'KeyZ') { Input.jumpHeld = true; e.preventDefault(); }
-    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyX') { Input.runHeld = true; }
   });
   window.addEventListener('keyup', (e) => {
     if (keyMap[e.code]) Input[keyMap[e.code]] = false;
     if (e.code === 'Space' || e.code === 'KeyZ') Input.jumpHeld = false;
-    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyX') Input.runHeld = false;
   });
 
   // --- Touch: virtual stick ---
@@ -105,9 +103,13 @@ function initInput() {
     () => { Input.jumpHeld = true; },
     () => { Input.jumpHeld = false; });
 
-  bindButton(document.getElementById('btn-run'),
-    () => { Input.runHeld = true; },
-    () => { Input.runHeld = false; });
+  // DESCEND: an explicit button alternative to dragging the stick down,
+  // mainly so entering the secret pipe doesn't require nailing a precise
+  // drag distance. Tracked separately from Input.down (the stick) so
+  // releasing one doesn't clobber the other if both happen to be held.
+  bindButton(document.getElementById('btn-descend'),
+    () => { Input.descendHeld = true; },
+    () => { Input.descendHeld = false; });
 
   // Prevent double-tap zoom / scroll on the whole document
   document.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });

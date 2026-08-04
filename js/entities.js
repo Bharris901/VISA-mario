@@ -33,16 +33,15 @@ function updatePlayer(p, input, dt, world) {
   // including jump apex timing, at 1.5-2x speed).
   const dtScale = dt / FRAME_MS;
 
-  const runMax = input.runHeld ? PHYS.RUN_MAX : PHYS.WALK_MAX;
-  const accel = (input.runHeld ? PHYS.RUN_ACCEL : PHYS.WALK_ACCEL) * (p.onGround ? 1 : PHYS.AIR_ACCEL_MULT) * dtScale;
+  const accel = PHYS.WALK_ACCEL * (p.onGround ? 1 : PHYS.AIR_ACCEL_MULT) * dtScale;
 
   if (input.left && !input.right) {
     p.vx -= accel;
-    if (p.vx < -runMax) p.vx = -runMax;
+    if (p.vx < -PHYS.WALK_MAX) p.vx = -PHYS.WALK_MAX;
     p.facing = -1;
   } else if (input.right && !input.left) {
     p.vx += accel;
-    if (p.vx > runMax) p.vx = runMax;
+    if (p.vx > PHYS.WALK_MAX) p.vx = PHYS.WALK_MAX;
     p.facing = 1;
   } else {
     const friction = PHYS.FRICTION * dtScale;
@@ -85,7 +84,8 @@ function updatePlayer(p, input, dt, world) {
   if (p.hurtInvuln > 0) p.hurtInvuln--;
 
   // Secret pipe entry: standing on the secret pipe cap + pressing down
-  if (input.down && p.onGround) {
+  // (via the joystick or the dedicated DESCEND button - either works)
+  if ((input.down || input.descendHeld) && p.onGround) {
     const footCol = Math.floor((p.x + p.w / 2) / TILE);
     const footRow = Math.floor((p.y + p.h) / TILE);
     const belowCh = tileAt(footCol, footRow);
@@ -104,10 +104,11 @@ function onHeadBump(world, p, col, row, ch) {
   if (ch === '?' ) {
     setTile(col, row, 'x');
     Sfx.bump();
-    world.spawnBlockPop(col, row);
-    if (col === 16) {
-      world.spawnMushroom(col, row - 1);
+    if (col === MUSHROOM_COL_1 || col === MUSHROOM_COL_2) {
+      // Growth mushroom if still small, a 1-up if already big.
+      world.spawnMushroom(col, row - 1, p.big ? '1up' : 'grow');
     } else {
+      world.spawnCoinPop(col, row);
       world.addCoin();
       Sfx.coin();
     }
@@ -145,11 +146,20 @@ function shrinkPlayer(p, world) {
 }
 
 // --- Enemies ---
+// Spawn columns aren't all flat ground (some sit on stair terrain), so the
+// spawn height is derived from the actual tile grid rather than assuming
+// GROUND_ROW - this is what fixed a goomba spawning embedded in a step and
+// rendering as if floating next to its wall face.
 function createGoomba(col) {
-  return { type: 'goomba', x: col * TILE, y: (GROUND_ROW - 1) * TILE, w: 16, h: 16, vx: -1.0, vy: 0, dead: false, squished: 0, animTimer: 0, animFrame: 0 };
+  const row = groundSurfaceRowAt(col);
+  // Goomba is 16px tall, shorter than a full TILE (24px), so the resting
+  // y is row*TILE - h, not (row-1)*TILE - that formula only happens to work
+  // for entities exactly one tile tall (like the koopa below).
+  return { type: 'goomba', x: col * TILE, y: row * TILE - 16, w: 16, h: 16, vx: -1.0, vy: 0, dead: false, squished: 0, animTimer: 0, animFrame: 0 };
 }
 function createKoopa(col) {
-  return { type: 'koopa', x: col * TILE, y: (GROUND_ROW - 2) * TILE, w: 16, h: 24, vx: -1.0, vy: 0, dead: false, shell: false, shellVx: 0, animTimer: 0, animFrame: 0 };
+  const row = groundSurfaceRowAt(col);
+  return { type: 'koopa', x: col * TILE, y: (row - 2) * TILE, w: 16, h: 24, vx: -1.0, vy: 0, dead: false, shell: false, shellVx: 0, animTimer: 0, animFrame: 0 };
 }
 
 function updateEnemy(e, dt) {
@@ -160,10 +170,14 @@ function updateEnemy(e, dt) {
   const speed = (e.type === 'koopa' && e.shell) ? e.shellVx : e.vx;
   const prevX = e.x;
   moveAndCollide(e, speed * dtScale, 0, null);
-  // reverse on wall hit
+  // Reverse on wall hit. Note: moveAndCollide already zeroed e.vx/e.shellVx
+  // as part of resolving the collision, so reversing *those* (0 * -1 = 0)
+  // silently did nothing - enemies would hit a wall and just stop dead
+  // instead of turning around. Reverse the pre-move `speed` we captured
+  // above instead.
   if (Math.abs(e.x - prevX) < Math.abs(speed) * dtScale * 0.5) {
-    e.vx *= -1;
-    if (e.type === 'koopa') e.shellVx *= -1;
+    if (e.type === 'koopa' && e.shell) e.shellVx = -speed;
+    else e.vx = -speed;
   }
   // gravity
   e.vy = Math.min(e.vy + PHYS.GRAVITY * dtScale, PHYS.TERMINAL_VELOCITY);
@@ -183,8 +197,10 @@ function updateEnemy(e, dt) {
 }
 
 // --- Mushroom power-up ---
-function createMushroom(col, row) {
-  return { x: col * TILE, y: row * TILE, w: 16, h: 16, vx: 1.2, vy: -2, emerging: 12 };
+// kind: 'grow' (red, grows small Mario) or '1up' (green, awarded instead
+// when Mario is already big).
+function createMushroom(col, row, kind = 'grow') {
+  return { x: col * TILE, y: row * TILE, w: 16, h: 16, vx: 1.2, vy: -2, emerging: 12, kind };
 }
 function updateMushroom(m, dt) {
   const dtScale = dt / FRAME_MS;

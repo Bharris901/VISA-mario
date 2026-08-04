@@ -28,7 +28,7 @@ function bakeSprite(rows, palette) {
 }
 
 const PAL = {
-  mario: { '.': null, 'r':'#e52521', 's':'#8b3a00', 'k':'#ffcc99', 'y':'#fbd000', 'w':'#ffffff', 'b':'#000000' },
+  mario: { '.': null, 'r':'#e52521', 's':'#8b3a00', 'k':'#ffcc99', 'y':'#fbd000', 'w':'#ffffff', 'b':'#000000', 'g':'#00a852' },
   goomba: { '.': null, 'b':'#8b3a00', 'd':'#4a1f00', 'w':'#ffffff', 'k':'#000000' },
   koopa: { '.': null, 'g':'#00a852', 'y':'#fbd000', 'w':'#ffffff', 'k':'#000000', 'd':'#00782e' },
   block: { '.': null, 'y':'#fbd000', 'o':'#c98800', 'k':'#7a4b00' },
@@ -36,6 +36,9 @@ const PAL = {
   ground: { '.': null, 'g':'#c98800', 'd':'#8f5c00', 'k':'#5c3a00' },
   pipe: { '.': null, 'g':'#00a852', 'd':'#00782e', 'l':'#5ce87a' },
   misc: { '.': null, 'w':'#ffffff', 'y':'#fbd000', 'g':'#00a852', 'k':'#000000', 'r':'#e52521', 'br':'#8f4718' },
+  coin: { '.': null, 'k':'#000000', 'y':'#f0b429', 'd':'#c9932a', 'w':'#fff8e6' },
+  qblock: { '.': null, 'o':'#c9861a', 'y':'#ffcf3f', 'k':'#fff6d8', 'b':'#5a3d00' },
+  face: { '.': null, 'y':'#ffcc4d', 'd':'#e0a233', 'k':'#664500', 'w':'#ffffff' },
 };
 
 const M = (rows, pal) => bakeSprite(rows, pal);
@@ -139,24 +142,33 @@ const marioBigStand = bigFrame([
   '.....yy..yy.....',
   '....kkk..kkk....',
   '....kkk..kkk....',
+  '................',
+  '................',
 ]);
-// Two distinct stepping poses (front leg forward, alternating) so walking
-// actually animates instead of alternating with the standing pose.
+// Two distinct stepping poses (one leg forward+raised, the other trailing
+// and extended back, swapping sides each frame) so walking actually reads
+// as a stride instead of alternating with the near-identical standing pose.
 const marioBigWalk1 = bigFrame([
-  '....syy..yy.....',
-  '...ssyy..yy.....',
-  '..sskkk..kkk....',
-  '.ss..kk..kk.....',
+  '.....yy..yy.....',
+  '.....yy...yys...',
+  '....kk....kks...',
+  '....kk.....kss..',
+  '...........sss..',
+  '................',
 ]);
 const marioBigWalk2 = bigFrame([
-  '.....yy..yyss...',
-  '.....yy..yyss...',
-  '....kkk..kkkss..',
-  '....kkk..kk..ss.',
+  '.....yy..yy.....',
+  '....syy..yy.....',
+  '...skk...kk.....',
+  '..sskk....kk....',
+  '..sss...........',
+  '................',
 ]);
 const marioBigJump = bigFrame([
   '.....yy.yy......',
   '....kk...kk.....',
+  '................',
+  '................',
   '................',
   '................',
 ]);
@@ -296,10 +308,33 @@ const mushroomSprite = M([
   '................',
 ], PAL.mario);
 
+// 1-up mushroom (green cap) - same shape as the growth mushroom, awarded
+// instead of a growth mushroom when Mario is already big.
+const mushroom1upSprite = M([
+  '................',
+  '.....gggggg.....',
+  '...gggggggggg...',
+  '..ggwwggggwwgg..',
+  '.ggwwwggggwwwgg.',
+  '.gggggggggggggg.',
+  '.gggggggggggggg.',
+  '..wwwwwwwwwwww..',
+  '..wkkkkkkkkkkw..',
+  '..wkwwwwwwwwkw..',
+  '..wkw......wkw..',
+  '..wkw......wkw..',
+  '...kk......kk...',
+  '................',
+  '................',
+  '................',
+], PAL.mario);
+
 // --- Blocks / terrain, 16x16 tiles ---
+// Rounded corners + corner bolts + a bold white "?" (reusing the original
+// mark's proven shape, just recolored) to match the reference block art.
 const questionBlock = M([
-  'oooooooooooooooo',
-  'oyyyyyyyyyyyyyyo',
+  '.oooooooooooooo.',
+  'oybyyyyyyyyyybyo',
   'oyoookkkkkooyyyo',
   'oyokkkyyyykk.yyo',
   'oyokkyyoooykkyyo',
@@ -312,9 +347,9 @@ const questionBlock = M([
   'oyyyyyoooyyyyyyo',
   'oyyyyyyyyyyyyyyo',
   'oyyyyyyyyyyyyyyo',
-  'oyyyyyyyyyyyyyyo',
-  'oooooooooooooooo',
-], PAL.block);
+  'oybyyyyyyyyyybyo',
+  '.oooooooooooooo.',
+], PAL.qblock);
 const usedBlock = M(Array(16).fill('oooooooooooooooo').map((r,i)=> i===0||i===15? r : 'o'+ 'k'.repeat(14)+'o'), PAL.block);
 const groundTile = M([
   'gggggggggggggggg',
@@ -354,91 +389,106 @@ const brickTile = M([
 ], PAL.brick);
 const solidBlock = M(Array(16).fill(0).map((_,i)=> i===0||i===15 ? 'kkkkkkkkkkkkkkkk' : 'k'+ 'o'.repeat(14)+'k'), PAL.block);
 
+// Note: previously the lower cap rows and every body row were framed with a
+// fully-transparent '.' column at each edge. Each pipe tile is drawn as its
+// own independent tile, so two adjacent tiles' transparent edges met at the
+// seam and showed as a thin vertical gap revealing the sky behind - the
+// reported "blue line down the pipe". Every row below is now the same solid
+// 16-wide pattern (no transparent pixels anywhere) so there's no seam gap.
+const PIPE_ROW = 'lgddddddddddddgg'; // 16 wide, fully opaque
 const pipeTop = M([
   'llddddddddddddgg',
-  'lgddddddddddddgg',
-  'lgddddddddddddgg',
-  'lgddddddddddddgg',
-  'lgddddddddddddgg',
-  'lgddddddddddddgg',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
+  PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW,
+  PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW,
+  PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW,
 ], PAL.pipe);
-const pipeBody = M([
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-  '.lgddddddddddgg.',
-], PAL.pipe);
+const pipeBody = M(Array(16).fill(PIPE_ROW), PAL.pipe);
 
+// Round gold coin (matches the reference art) - used both for the HUD icon
+// and the pop animation when a coin block is hit, replacing the previous
+// small diamond placeholder (and the emoji HUD icon, which rendered as a
+// dull silver/copper glyph on iOS instead of gold).
 const coinSprite = M([
-  '................',
-  '.....yyyy.......',
-  '....ywwyy.......',
-  '...yywyyy.......',
-  '...yywyyy.......',
-  '...yywyyy.......',
-  '...yywyyy.......',
-  '....ywyy........',
-  '.....yyyy.......',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
-], PAL.block);
+  '.....kkkkkk.....',
+  '...kkyyyyyykk...',
+  '..kyyyyyyyyyyk..',
+  '.kyywyyyyddyyyk.',
+  '.kywwyyyyddyyyk.',
+  'kyyyyyyyyddyyyyk',
+  'kyyyyyyyyddyyyyk',
+  'kyyyyyyyyddyyyyk',
+  'kyyyyyyyyddyyyyk',
+  'kyyyyyyyyddyyyyk',
+  'kyyyyyyyyddyyyyk',
+  '.kyyyyyyyddyyyk.',
+  '.kyyyyyyyddyyyk.',
+  '..kyyyyyyyyyyk..',
+  '...kkyyyyyykk...',
+  '.....kkkkkk.....',
+], PAL.coin);
 
 const flagpoleTile = M([
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
-  '.......kk.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
+  '.......gg.......',
 ], PAL.misc);
 
+// White pennant with a green accent mark, attached at the pole (left edge).
 const flagSprite = M([
   '................',
   '.gggggggg.......',
-  '.gwwwwwgg.......',
-  '.gwgggwgg.......',
-  '.gwgggwgg.......',
-  '.gwwwwwgg.......',
+  '.gwwwwwwg.......',
+  '.gwwggwwg.......',
+  '.gwwggwwg.......',
+  '.gwwwwwwg.......',
   '.gggggggg.......',
   '................',
 ], PAL.misc);
+
+// Small ball finial for the top of the (now shortened) flagpole.
+const ballSprite = M([
+  '..gggg..',
+  '.gggggg.',
+  'gggggggg',
+  'gggggggg',
+  'gggggggg',
+  'gggggggg',
+  '.gggggg.',
+  '..gggg..',
+], PAL.misc);
+
+// 8-bit grimacing face for the "try again" death screen.
+const grimaceFace = M([
+  '.....kkkkkk.....',
+  '...kkyyyyyykk...',
+  '..kyyyyyyyyyyk..',
+  '.kyyyyyyyyyyyyk.',
+  'kyyyyyyyyyyyyyyk',
+  'kyyykkyyyykkyyyk',
+  'kyyyyyyyyyyyyyyk',
+  'kyyyyyyyyyyyyyyk',
+  'kyyykkkkkkkkyyyk',
+  'kyywwwwwwwwwwyyk',
+  'kyywkwkwkwkwwyyk',
+  'kyywwwwwwwwwwyyk',
+  'kyyykkkkkkkkyyyk',
+  '.kyyyyyyyyyyyyk.',
+  '...kkyyyyyykk...',
+  '.....kkkkkk.....',
+], PAL.face);
 
 const cloudSprite = M([
   '....wwww........',
@@ -459,8 +509,9 @@ const bushSprite = M([
 
 const SPRITES = {
   MARIO_SMALL, MARIO_BIG, GOOMBA, KOOPA,
-  mushroom: mushroomSprite,
+  mushroom: mushroomSprite, mushroom1up: mushroom1upSprite,
   questionBlock, usedBlock, groundTile, brickTile, solidBlock,
   pipeTop, pipeBody, coin: coinSprite,
-  flagpoleTile, flag: flagSprite, cloud: cloudSprite, bush: bushSprite,
+  flagpoleTile, flag: flagSprite, ball: ballSprite, cloud: cloudSprite, bush: bushSprite,
+  grimaceFace,
 };

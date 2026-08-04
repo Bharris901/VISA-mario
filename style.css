@@ -33,7 +33,13 @@ html, body {
   pointer-events: none;
   padding-top: max(6px, env(safe-area-inset-top));
 }
-#hud-coins { color: #ffd400; }
+#hud-coins { color: #ffd400; display: flex; align-items: center; gap: 4px; }
+#hud-coin-icon {
+  width: 1em; height: 1em;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  vertical-align: middle;
+}
 .hud-mid { flex: 1; text-align: center; }
 .hud-right { display: flex; gap: 6px; }
 
@@ -46,7 +52,7 @@ body.secret-scene #lives-hud {
 /* visibility (not display:none) so the flex layout doesn't reflow and push
    the JUMP button to the wrong side */
 body.secret-scene #dpad-zone,
-body.secret-scene #btn-run {
+body.secret-scene #btn-descend {
   visibility: hidden;
   pointer-events: none;
 }
@@ -108,6 +114,14 @@ body.secret-scene #btn-run {
 #start-btn:active, #message-btn:active { transform: scale(0.96); }
 
 .message-card { max-width: 420px; }
+#message-icon {
+  display: block;
+  width: 96px; height: 96px;
+  margin: 0 auto 16px auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+#message-icon.hidden { display: none; }
 #message-text {
   font-size: clamp(15px, 2.6vw, 20px);
   line-height: 1.6;
@@ -162,6 +176,7 @@ body.secret-scene #btn-run {
 }
 .ctrl-btn.big { width: 92px; height: 92px; font-size: 15px; background: rgba(251,208,0,0.55); color: #000; }
 .ctrl-btn:active { background: rgba(255,255,255,0.6); }
+#btn-descend { font-size: 10px; line-height: 1.1; }
 
 @media (min-width: 900px) {
   #dpad-zone { width: 220px; height: 160px; }

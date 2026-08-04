@@ -1,4 +1,4 @@
-# Memphis Quest
+# Memphis Mario
 
 A browser-playable recreation of World 1-1 with a hidden custom twist: a
 secret green pipe near the end of the level leads to an 8-bit Beale Street
@@ -35,12 +35,16 @@ you'd rather use one of those instead.
 
 ## Controls
 
-- **Desktop (testing):** Arrow keys / WASD to move, Space or Z to jump,
-  Shift or X to run.
+- **Desktop (testing):** Arrow keys / WASD to move, Space or Z to jump.
 - **Mobile:** drag anywhere in the bottom-left zone to move (a virtual
-  stick, not a rigid d-pad — more forgiving with imprecise thumbs), RUN and
-  JUMP buttons bottom-right. Phone must be in landscape — a rotate prompt
+  stick, not a rigid d-pad — more forgiving with imprecise thumbs), JUMP and
+  DESCEND buttons bottom-right. Phone must be in landscape — a rotate prompt
   shows automatically in portrait.
+
+There's a single ground speed (no RUN button/speed tier) - simpler to reason
+about for a one-day event with mostly non-gamers. DESCEND is a dedicated
+button alternative to dragging the stick down (mainly so entering the secret
+pipe doesn't hinge on nailing a precise drag distance) - either input works.
 
 ### Usability choices (why controls feel more forgiving than "true" NES)
 
@@ -49,11 +53,19 @@ you'd rather use one of those instead.
 - **Jump buffering** — a jump tapped slightly early still fires the moment
   you land.
 - **No game over, ever** — dying (falling in a pit, an enemy hit while
-  small, or time running out) just restarts the level instantly. There's
-  no fail state that stops play.
+  small, or time running out) shows a brief "Try again Memphis Mario!"
+  screen with a Start Over button that restarts the level. There's no fail
+  state that stops play, just a quick pause and a tap to go again.
 - **Assist mode** — after 3 deaths in a session, the player becomes
   invincible to enemy contact for the rest of that session, so nobody can
   get permanently stuck during the event. This is automatic and silent.
+
+## Power-ups
+
+Two question blocks (near the start, and roughly halfway through) spawn a
+mushroom instead of a coin: a growth mushroom if Mario is still small, or a
+green 1-up mushroom instead if he's already big (bonus points + an extra
+life on the HUD counter - cosmetic, since dying never actually ends play).
 
 ## How the hidden clue works
 

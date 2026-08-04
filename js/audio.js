@@ -68,15 +68,36 @@ const Sfx = (() => {
     } catch (e) {}
   }
 
-  // --- Background music: a short original 8-bit-style loop (not the Mario
-  // theme - an original composition), kept quiet so it sits under the SFX. ---
-  const STEP_SEC = 0.155;
+  // --- Background music: a cheery, upbeat original 8-bit-style loop (not
+  // the Mario theme - an original composition), kept quiet so it sits under
+  // the SFX. Built from four 16-step phrases stitched into a longer
+  // ~25s sequence so it doesn't feel like it's looping every few seconds. ---
+  const STEP_SEC = 0.16;
   const MUSIC_VOL = 0.045; // deliberately well below SFX (~0.15-0.2)
-  // simple original melody, one note per step ('.' = rest)
-  const MELODY = [659,'.',784,'.', 880,'.',784,'.', 659,'.',587,'.', 659,'.','.', '.',
-                  784,'.',880,'.', 988,'.',880,'.', 784,'.',659,'.', 587,'.','.', '.'];
-  const BASS =   [330,'.','.','.', 220,'.','.','.', 349,'.','.','.', 262,'.','.','.',
-                  330,'.','.','.', 220,'.','.','.', 392,'.','.','.', 294,'.','.','.'];
+
+  // Bright, bouncy major-key phrases ('.' = rest).
+  const PHRASE_A_MEL = [523,'.',659,'.', 784,'.',659,'.', 523,'.',659,'.', 784,'.','.','.'];
+  const PHRASE_A_BASS = [262,'.','.','.', 330,'.','.','.', 392,'.','.','.', 330,'.','.','.'];
+
+  const PHRASE_B_MEL = [784,'.',880,'.', 1047,'.',880,'.', 784,'.',698,'.', 659,'.','.','.'];
+  const PHRASE_B_BASS = [392,'.','.','.', 440,'.','.','.', 523,'.','.','.', 440,'.','.','.'];
+
+  const PHRASE_C_MEL = [659,'.',587,'.', 523,'.',587,'.', 659,'.',784,'.', 659,'.','.','.'];
+  const PHRASE_C_BASS = [330,'.','.','.', 294,'.','.','.', 262,'.','.','.', 294,'.','.','.'];
+
+  const PHRASE_D_MEL = [1047,'.',988,'.', 880,'.',784,'.', 880,'.',988,'.', 1047,'.','.','.'];
+  const PHRASE_D_BASS = [523,'.','.','.', 494,'.','.','.', 440,'.','.','.', 392,'.','.','.'];
+
+  const PHRASES = {
+    A: { mel: PHRASE_A_MEL, bass: PHRASE_A_BASS },
+    B: { mel: PHRASE_B_MEL, bass: PHRASE_B_BASS },
+    C: { mel: PHRASE_C_MEL, bass: PHRASE_C_BASS },
+    D: { mel: PHRASE_D_MEL, bass: PHRASE_D_BASS },
+  };
+  // ~25.6s total (10 phrases * 16 steps * 0.16s) before it repeats.
+  const SONG_ORDER = ['A', 'B', 'A', 'C', 'A', 'B', 'D', 'A', 'C', 'A'];
+  const MELODY = SONG_ORDER.flatMap(p => PHRASES[p].mel);
+  const BASS = SONG_ORDER.flatMap(p => PHRASES[p].bass);
 
   let musicOn = false;
   let musicStep = 0;
@@ -88,8 +109,14 @@ const Sfx = (() => {
     while (nextNoteTime < c.currentTime + 0.2) {
       const mel = MELODY[musicStep % MELODY.length];
       const bass = BASS[musicStep % BASS.length];
-      if (mel !== '.') toneAt(nextNoteTime, mel, STEP_SEC * 0.9, 'square', MUSIC_VOL);
+      if (mel !== '.') toneAt(nextNoteTime, mel, STEP_SEC * 0.85, 'square', MUSIC_VOL);
       if (bass !== '.') toneAt(nextNoteTime, bass, STEP_SEC * 0.95, 'triangle', MUSIC_VOL * 0.9);
+      // A light rhythmic pulse (soft "kick" on the downbeat, a short tick on
+      // the offbeat) to give the loop some bounce/energy rather than just
+      // a bare melody.
+      const beat = musicStep % 4;
+      if (beat === 0) toneAt(nextNoteTime, 100, 0.09, 'sine', MUSIC_VOL * 0.8);
+      if (beat === 2) toneAt(nextNoteTime, 1800, 0.02, 'square', MUSIC_VOL * 0.5);
       nextNoteTime += STEP_SEC;
       musicStep++;
     }

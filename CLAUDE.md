@@ -50,6 +50,11 @@ means adding a `<script>` tag for it. Because nothing but function/const
 once via `buildLevel()` and `sprites.js` baking sprite canvases once), load
 order mostly doesn't matter for correctness — cross-file globals are only
 read inside function bodies, which run after every script has loaded.
+**Gotcha already hit once:** top-level `const`/`let` (e.g. `const SPRITES =
+{...}` in sprites.js) are NOT properties of `window`, unlike `var` or
+function declarations — `window.SPRITES` is `undefined` even though bare
+`SPRITES` works fine anywhere after sprites.js has loaded. Check for a
+global's existence with `typeof X !== 'undefined'`, never `window.X`.
 
 **Rendering & the state machine (`js/main.js`).** A single 480×288 `<canvas>`
 is tile-based (`TILE = 24`px, `ROWS`/`COLS`/`GROUND_ROW` from `level.js`).
@@ -71,12 +76,27 @@ stay correct across devices, not add raw per-frame constants.
 
 **Level data (`js/level.js`).** `buildLevel()` procedurally constructs an
 *original* tile layout designed to feel like classic World 1-1 (not copied
-level data) and returns `{ grid, SECRET_PIPE_COL, FLAG_COL }`. Tile
-characters are documented at the top of the file (`'#'` ground, `'?'`
+level data) and returns `{ grid, SECRET_PIPE_COL, FLAG_COL, FLAG_TOP_ROW }`.
+Tile characters are documented at the top of the file (`'#'` ground, `'?'`
 question block, `'B'` brick, `'T'/'U'` pipe caps, `'g'/'h'` the *secret*
 pipe's caps, `'F'` flagpole, etc.). `main.js` deep-copies the initial grid
 into `ORIGINAL_GRID` at load and calls `resetLevelTiles()` on every level
 reset, so broken bricks/used blocks correctly restore each playthrough.
+`MUSHROOM_COL_1`/`MUSHROOM_COL_2` mark the two `'?'` columns that spawn a
+mushroom instead of a coin (growth if Mario is small, 1-up if already big -
+decided in `entities.js`'s `onHeadBump` at hit-time, not baked into the
+level).
+
+**Enemy spawn placement (`groundSurfaceRowAt`).** Spawn columns in
+`ENTITY_SPAWNS` aren't all flat ground (some sit on stair terrain, and some
+columns also have unrelated floating blocks above them, e.g. col 63 has
+both a floating brick and a ground-level goomba spawn). `groundSurfaceRowAt`
+finds the correct resting row by scanning **up from the floor** through the
+contiguous solid stack, not top-down from row 0 — a top-down scan would stop
+at the first solid tile in the column, which can be a floating block well
+above the real ground, and misplace the entity up there (this was a real
+bug: a goomba spawned embedded in/against a stair step and read as floating
+next to a wall).
 
 **Sprites (`js/sprites.js`).** Every sprite is hand-authored as an array of
 strings (one char per pixel, mapped through a palette in `PAL`) and baked
@@ -108,11 +128,14 @@ audio init earlier than that tap.
   `ASSIST_MODE_DEATH_THRESHOLD` — top of `main.js`.
 - `CARD_DEFS` — `minigame.js` (mini-game card art/labels).
 - `PHYS.*` — `physics.js` (movement/jump tuning; remember the dtScale note
-  above when changing anything here).
+  above when changing anything here). There's a single ground speed
+  (`WALK_MAX`/`WALK_ACCEL`) - no run/speed-tier button.
 
 **Design invariant to preserve:** there is no game-over state. Every death
-path funnels through `world.onPlayerDeath(reason)` → `resetLevel()`; it
-always restarts the level rather than ending play. After
-`ASSIST_MODE_DEATH_THRESHOLD` deaths in a session, `game.assistMode` makes
-the player invincible to enemy contact for the rest of the session. Keep
-both behaviors in mind before adding any new failure state.
+path funnels through `world.onPlayerDeath(reason)`, which shows a "Try again
+Memphis Mario!" message (via `UI.showMessage`, with the grimace-face icon)
+whose button calls `resetLevel()` — it always restarts the level rather than
+ending play. After `ASSIST_MODE_DEATH_THRESHOLD` deaths in a session,
+`game.assistMode` makes the player invincible to enemy contact for the rest
+of the session. Keep both behaviors in mind before adding any new failure
+state.

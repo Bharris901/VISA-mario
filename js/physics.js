@@ -15,10 +15,8 @@ const PHYS = {
   GRAVITY: 0.62,
   FALL_GRAVITY_MULT: 1.15,   // extra gravity once falling, snappier arc
   WALK_ACCEL: 0.28,
-  RUN_ACCEL: 0.4,
   FRICTION: 0.3,
-  WALK_MAX: 2.6,
-  RUN_MAX: 4.4,
+  WALK_MAX: 2.6,             // the only ground speed now - no RUN button
   AIR_ACCEL_MULT: 0.85,
   // -13 gives a ~137px apex (v^2/2g), comfortably clearing the tallest
   // (4-tile / 96px) pipe with margin - the old -10.8 (~94px apex) was

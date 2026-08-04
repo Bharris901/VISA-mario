@@ -35,6 +35,7 @@ const game = {
   cameraX: 0,
   score: 0,
   coins: 0,
+  extraLives: 0,
   timeLeft: 400,
   clueFound: false,
   deathCount: 0,
@@ -53,6 +54,7 @@ function resetLevel() {
   game.particles = [];
   game.score = 0;
   game.coins = 0;
+  game.extraLives = 0;
   game.timeLeft = 400;
   game.clueFound = false;
   game.cameraX = 0;
@@ -75,8 +77,16 @@ const world = {
     }
     game.score += 50;
   },
-  spawnMushroom(col, row) {
-    game.mushrooms.push(createMushroom(col, row));
+  spawnCoinPop(col, row) {
+    // A coin that pops up out of the block and falls back, rather than the
+    // old plain fading square - reuses the same gold coin art as the HUD.
+    game.particles.push({
+      x: col * TILE + TILE / 2 - 8, y: row * TILE,
+      vx: 0, vy: -4.2, life: 550, type: 'coin',
+    });
+  },
+  spawnMushroom(col, row, kind) {
+    game.mushrooms.push(createMushroom(col, row, kind));
   },
   enterSecretPipe() {
     if (game.state !== 'playing') return;
@@ -94,8 +104,8 @@ const world = {
     Sfx.die();
     game.state = 'frozen';
     setTimeout(() => {
-      resetLevel();
-    }, 900);
+      UI.showMessage('Try again Memphis Mario!', () => resetLevel(), 'START OVER', SPRITES.grimaceFace);
+    }, 500);
   },
 };
 
@@ -106,7 +116,12 @@ function checkEnemyCollisions() {
     if (e.dead) continue;
     if (!aabbOverlap(p, e)) continue;
 
-    const stomping = p.vy > 0 && (p.y + p.h) - e.y < 10;
+    // Require real downward motion (not just barely-positive residual
+    // gravity) and a shallow overlap into the enemy's top edge - the old
+    // "< 10" tolerance was more than half a goomba's height (16px), so an
+    // approach from the side often misread as a stomp: the enemy died and
+    // Mario took no damage, which looked like "nothing happened."
+    const stomping = p.vy > 1 && (p.y + p.h) - e.y < 6;
 
     if (e.type === 'koopa' && e.shell && Math.abs(e.shellVx) > 1.5) {
       // moving shell hits player
@@ -143,8 +158,14 @@ function checkEnemyCollisions() {
     if (m.collected) continue;
     if (aabbOverlap(p, m)) {
       m.collected = true;
-      growPlayer(p);
-      game.score += 1000;
+      if (m.kind === '1up') {
+        game.extraLives++;
+        game.score += 1000;
+        Sfx.powerup();
+      } else {
+        growPlayer(p);
+        game.score += 1000;
+      }
     }
   }
   game.mushrooms = game.mushrooms.filter(m => !m.collected);
@@ -217,8 +238,12 @@ function drawLevel(camX) {
       }
     }
   }
-  // flag banner near the top of the pole
-  drawSprite(SPRITES.flag, FLAG_COL * TILE - camX - 14, TILE * 1.5, 24, 12);
+  // Ball finial + pennant at the top of the (deliberately shortened) pole,
+  // so the top is always clearly visible with sky above it.
+  const poleTopY = FLAG_TOP_ROW * TILE;
+  const poleCenterX = FLAG_COL * TILE - camX + TILE / 2;
+  drawSprite(SPRITES.ball, poleCenterX - 8, poleTopY - 12, 16, 16);
+  drawSprite(SPRITES.flag, poleCenterX - 14, poleTopY + 4, 24, 12);
 }
 
 function drawEnemies(camX) {
@@ -236,19 +261,33 @@ function drawEnemies(camX) {
 }
 
 function drawMushrooms(camX) {
-  for (const m of game.mushrooms) drawSprite(SPRITES.mushroom, m.x - camX, m.y, 16, 16);
+  for (const m of game.mushrooms) {
+    const spr = m.kind === '1up' ? SPRITES.mushroom1up : SPRITES.mushroom;
+    drawSprite(spr, m.x - camX, m.y, 16, 16);
+  }
 }
 
 function drawParticles(camX, dt) {
   game.particles = game.particles.filter(p => {
     p.life -= dt;
-    if (p.vx !== undefined) { p.x += p.vx; p.y += p.vy; p.vy += 0.25; }
-    else { p.y -= 0.6; }
+    if (p.type === 'coin') {
+      p.y += p.vy; p.vy += 0.35;
+    } else if (p.vx !== undefined) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.25;
+    } else {
+      p.y -= 0.6;
+    }
     if (p.life <= 0) return false;
-    ctx.fillStyle = p.type === 'brick' ? '#c9682a' : '#fff';
-    ctx.globalAlpha = Math.max(0, p.life / (p.type === 'brick' ? 600 : 300));
-    ctx.fillRect(p.x - camX, p.y, p.type === 'brick' ? 6 : 4, p.type === 'brick' ? 6 : 4);
-    ctx.globalAlpha = 1;
+    if (p.type === 'coin') {
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 200));
+      drawSprite(SPRITES.coin, p.x - camX, p.y, 16, 16);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.fillStyle = p.type === 'brick' ? '#c9682a' : '#fff';
+      ctx.globalAlpha = Math.max(0, p.life / (p.type === 'brick' ? 600 : 300));
+      ctx.fillRect(p.x - camX, p.y, p.type === 'brick' ? 6 : 4, p.type === 'brick' ? 6 : 4);
+      ctx.globalAlpha = 1;
+    }
     return true;
   });
 }
@@ -398,7 +437,8 @@ function update(dt) {
 
     const targetCam = game.player.x - VIEW_W / 2 + 40;
     game.cameraX = Math.max(0, Math.min(targetCam, LEVEL_PIXEL_WIDTH - VIEW_W));
-    UI.updateHud({ score: game.score, coins: game.coins, timeLeft: game.timeLeft, livesDisplay: Math.max(0, 3 - (game.deathCount % 3)) || 3 });
+    const baseLives = (3 - (game.deathCount % 3)) || 3;
+    UI.updateHud({ score: game.score, coins: game.coins, timeLeft: game.timeLeft, livesDisplay: baseLives + game.extraLives });
   }
   else if (game.state === 'pipeEnter') {
     game.pipeAnimTimer += dt;

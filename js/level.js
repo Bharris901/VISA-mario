@@ -116,15 +116,19 @@ function buildLevel() {
   // --- Final big staircase up to the flagpole ---
   const flagStairTop = stairsUp(208, 8, 1);
   const flagCol = 219;
-  for (let r = 1; r < GROUND_ROW; r++) grid[r][flagCol] = 'F';
-  grid[0][flagCol] = 'F';
+  // Shortened on purpose (6 tiles instead of spanning the full screen
+  // height) so the ball finial at the top is clearly visible with sky
+  // above it, rather than running off the top of the view.
+  const FLAGPOLE_HEIGHT = 6;
+  const flagTopRow = GROUND_ROW - FLAGPOLE_HEIGHT;
+  for (let r = flagTopRow; r < GROUND_ROW; r++) grid[r][flagCol] = 'F';
 
   // --- Castle ---
   for (let cc = flagCol + 4; cc < flagCol + 9; cc++) {
     for (let r = GROUND_ROW - 2; r < GROUND_ROW; r++) grid[r][cc] = 'C';
   }
 
-  return { grid, SECRET_PIPE_COL, FLAG_COL: flagCol };
+  return { grid, SECRET_PIPE_COL, FLAG_COL: flagCol, FLAG_TOP_ROW: flagTopRow };
 }
 
 const LEVEL = buildLevel();
@@ -143,17 +147,35 @@ function isSolid(ch) {
 }
 function isPipeCap(ch) { return ch === 'T' || ch === 'U' || ch === 'g' || ch === 'h'; }
 
-// --- Entity spawns (Goombas / Koopas) placed by column, walking on ground ---
+// Finds the row an entity standing in this column should rest on. Spawn
+// columns aren't all flat ground (some sit on stair-step terrain of
+// varying height), so spawning at a hardcoded row could embed an entity in
+// solid tiles or leave it hovering next to a step's wall face - this is
+// what was actually happening.
+//
+// Scans from the *bottom* up through the contiguous solid stack (handles
+// stairs of any height) rather than top-down: a top-down scan would stop at
+// the first solid tile in the column, which can be an unrelated floating
+// block well above the real ground (e.g. col 63 has both a floating brick
+// block and a ground-level goomba spawn) and misplace the entity up there.
+function groundSurfaceRowAt(col) {
+  let r = ROWS - 1;
+  if (!isSolid(tileAt(col, r))) return ROWS; // pit column - no ground here
+  while (r > 0 && isSolid(tileAt(col, r - 1))) r--;
+  return r;
+}
+
+// --- Entity spawns (Goombas only - no green enemies per design) ---
 const ENTITY_SPAWNS = [
   { type: 'goomba', col: 18 },
   { type: 'goomba', col: 42 },
   { type: 'goomba', col: 63 },
   { type: 'goomba', col: 74 },
-  { type: 'koopa', col: 96 },
+  { type: 'goomba', col: 96 },
   { type: 'goomba', col: 112 },
   { type: 'goomba', col: 132 },
   { type: 'goomba', col: 134 },
-  { type: 'koopa', col: 160 },
+  { type: 'goomba', col: 160 },
   { type: 'goomba', col: 198 },
 ];
 
@@ -161,3 +183,9 @@ const LEVEL_PIXEL_WIDTH = COLS * TILE;
 const LEVEL_PIXEL_HEIGHT = ROWS * TILE;
 const SECRET_PIPE_COL = LEVEL.SECRET_PIPE_COL;
 const FLAG_COL = LEVEL.FLAG_COL;
+const FLAG_TOP_ROW = LEVEL.FLAG_TOP_ROW;
+
+// The two question-block columns that spawn a mushroom instead of a coin -
+// growth (red) mushroom if Mario is small, 1-up (green) if already big.
+const MUSHROOM_COL_1 = 16;  // near the very start
+const MUSHROOM_COL_2 = 108; // roughly halfway through the level
