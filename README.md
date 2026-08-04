@@ -59,13 +59,9 @@ doing nothing silently.
   descending "womp womp" sting, then shows a "Try again Memphis Mario!"
   screen (with an 8-bit X-eyes face) and a Start Over button. Music stays
   off until Start Over restarts it fresh. There's no fail state that stops
-  play, just a quick pause and a tap to go again.
-- **Assist mode** — after 3 deaths in a session, the player becomes
-  invincible to enemy contact for the rest of that session, so nobody can
-  get permanently stuck during the event. This is automatic, silent, and
-  intentionally permanent for the session (not a temporary window) - if
-  that threshold or behavior ever needs tuning, it's
-  `ASSIST_MODE_DEATH_THRESHOLD` in `js/main.js`.
+  play, just a quick pause and a tap to go again. (An earlier version of
+  this also made the player briefly invincible to enemies after repeated
+  deaths - that's been removed; enemies always damage normally now.)
 
 ## Power-ups
 

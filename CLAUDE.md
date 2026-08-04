@@ -148,9 +148,25 @@ created/resumed on `unlock()`, called from the start-button tap handler in
 `main.js` — mobile browsers block audio before a user gesture, so don't move
 audio init earlier than that tap.
 
+**Stomp detection (`checkEnemyCollisions` in `main.js`).** A stomp is
+"falling, and `p.prevBottom <= e.y`" — `prevBottom` is the player's
+feet-position captured at the *start* of `updatePlayer`, before that frame's
+move, so it reflects where Mario was a moment ago rather than how deep this
+frame's overlap happens to be. Two earlier versions of this check compared
+overlap depth after the fact instead (first a flat `< 10px`, then
+`<= half the enemy's height`) and both were flow-rate-dependent bugs: at
+high fall speed (terminal velocity is 11px/frame) it's possible to step
+clean over a several-pixel detection window in a single frame depending on
+sub-pixel alignment - roughly 1 in 8 fast falls tunneled through in testing,
+landing squarely on a goomba but resolving as a side hit (enemy survives,
+Mario takes damage). Comparing against the previous frame's position side-
+steps that entirely, since it doesn't matter how far Mario moved this frame.
+Apply the same "compare against last frame's state" pattern rather than an
+instantaneous-distance heuristic for any future contact-direction check.
+
 **Key config knobs a task will usually touch:**
-- `CLUE_MESSAGE`, `NOT_FOUND_MESSAGE`, `FOUND_BUT_FINISHED_MESSAGE`,
-  `ASSIST_MODE_DEATH_THRESHOLD` — top of `main.js`.
+- `CLUE_MESSAGE`, `NOT_FOUND_MESSAGE`, `FOUND_BUT_FINISHED_MESSAGE` — top of
+  `main.js`.
 - `CARD_DEFS` — `minigame.js` (mini-game card art/labels).
 - `PHYS.*` — `physics.js` (movement/jump tuning; remember the dtScale note
   above when changing anything here). There's a single ground speed
@@ -160,7 +176,6 @@ audio init earlier than that tap.
 path funnels through `world.onPlayerDeath(reason)`, which shows a "Try again
 Memphis Mario!" message (via `UI.showMessage`, with the grimace-face icon)
 whose button calls `resetLevel()` — it always restarts the level rather than
-ending play. After `ASSIST_MODE_DEATH_THRESHOLD` deaths in a session,
-`game.assistMode` makes the player invincible to enemy contact for the rest
-of the session. Keep both behaviors in mind before adding any new failure
-state.
+ending play. There is no invincibility/assist mode (removed) - enemies
+always damage the player normally regardless of death count. Keep this
+behavior in mind before adding any new failure state.

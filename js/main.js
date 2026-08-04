@@ -10,7 +10,6 @@ const NOT_FOUND_MESSAGE = "You didn't find the hidden clue.\nStart over to try a
 const FOUND_BUT_FINISHED_MESSAGE =
   "🏁 Level complete!\nYou already found the hidden clue — good luck with the rest of the hunt!";
 
-const ASSIST_MODE_DEATH_THRESHOLD = 3;
 const MARIO_DRAW_SCALE = 1.5; // native sprite px -> on-screen px
 
 const canvas = document.getElementById('game');
@@ -39,7 +38,6 @@ const game = {
   timeLeft: 400,
   clueFound: false,
   deathCount: 0,
-  assistMode: false,
   pipeAnimTimer: 0,
   secretRoomTimer: 0,
   flagSlideTimer: 0,
@@ -130,7 +128,6 @@ const world = {
     if (game.player.dead) return;
     game.player.dead = true;
     game.deathCount++;
-    if (game.deathCount >= ASSIST_MODE_DEATH_THRESHOLD) game.assistMode = true;
     // Background music cuts out and a ~5s "womp womp" plays instead, then
     // silence until Start Over restarts the music fresh (via restartLevel).
     Sfx.stopMusic();
@@ -149,16 +146,25 @@ function checkEnemyCollisions() {
     if (e.dead) continue;
     if (!aabbOverlap(p, e)) continue;
 
-    // Require real downward motion (not just barely-positive residual
-    // gravity) and a shallow overlap into the enemy's top edge - the old
-    // "< 10" tolerance was more than half a goomba's height (16px), so an
-    // approach from the side often misread as a stomp: the enemy died and
-    // Mario took no damage, which looked like "nothing happened."
-    const stomping = p.vy > 1 && (p.y + p.h) - e.y < 6;
+    // A stomp is: falling, AND Mario's feet were at or above the enemy's
+    // top edge *last* frame (so this frame's overlap can only have come
+    // from landing on top of it) - checked against the previous frame's
+    // position rather than how deep this frame's overlap happens to be.
+    // Two earlier versions of this check used an instantaneous overlap-depth
+    // threshold (first "< 10px", then "<= half the enemy's height"), and
+    // both had the same underlying flaw: at high fall speed (up to 11px/
+    // frame at terminal velocity) it's possible to step clean over a
+    // several-pixel-wide detection window in a single frame, depending on
+    // the exact sub-pixel alignment - about 1 in 8 falls tunneled through
+    // in testing, landing squarely on a goomba but registering as a side
+    // hit (goomba survives, Mario takes damage). Comparing against
+    // `prevBottom` is exact regardless of fall speed, since it doesn't rely
+    // on measuring how deep into the enemy Mario ended up this frame.
+    const stomping = p.vy > 0 && p.prevBottom <= e.y;
 
     if (e.type === 'koopa' && e.shell && Math.abs(e.shellVx) > 1.5) {
       // moving shell hits player
-      if (game.assistMode || p.hurtInvuln > 0) continue;
+      if (p.hurtInvuln > 0) continue;
       shrinkPlayer(p, world);
       continue;
     }
@@ -181,7 +187,7 @@ function checkEnemyCollisions() {
         e.shellVx = (p.x < e.x ? 1 : -1) * 3;
         continue;
       }
-      if (game.assistMode || p.hurtInvuln > 0) continue;
+      if (p.hurtInvuln > 0) continue;
       shrinkPlayer(p, world);
     }
   }

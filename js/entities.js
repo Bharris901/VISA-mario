@@ -3,8 +3,9 @@
 // ---------------------------------------------------------------------------
 
 function createPlayer() {
+  const y = TILE * (GROUND_ROW - 1);
   return {
-    x: TILE * 2, y: TILE * (GROUND_ROW - 1), vx: 0, vy: 0,
+    x: TILE * 2, y, vx: 0, vy: 0,
     w: 14, h: 16,
     big: false,
     facing: 1,
@@ -16,6 +17,7 @@ function createPlayer() {
     hurtInvuln: 0,     // brief flashing invulnerability after shrinking
     dead: false,
     inPipe: false,     // true during the secret-pipe entry cutscene
+    prevBottom: y + 16, // see updatePlayer's comment on stomp detection
   };
 }
 
@@ -25,6 +27,12 @@ function resizePlayerBox(p) {
 
 function updatePlayer(p, input, dt, world) {
   if (p.inPipe || p.dead) return;
+
+  // Captured before moving so checkEnemyCollisions can tell a genuine stomp
+  // (feet were above the enemy's top last frame) from a side hit, no matter
+  // how far Mario moves in a single step - see the comment there for why an
+  // instantaneous-overlap-depth check isn't reliable at high fall speeds.
+  p.prevBottom = p.y + p.h;
 
   // Normalize all physics to be independent of actual device frame rate -
   // every constant below is tuned assuming ~60fps, and dtScale rescales the
