@@ -40,7 +40,8 @@ const PAL = {
 
 const M = (rows, pal) => bakeSprite(rows, pal);
 
-// --- Mario (small), 16x16 ---
+// --- Mario (small), 16x14 (kept tight - no dead rows below the feet, which
+// previously left a small gap between the sprite and the ground) ---
 const marioSmallStand = M([
   '......rrr.......',
   '.....rrrrrr.....',
@@ -56,7 +57,6 @@ const marioSmallStand = M([
   '.....yy.yy......',
   '....kk...kk.....',
   '....kkk.kkk.....',
-  '................',
 ], PAL.mario);
 
 const marioSmallWalk1 = M([
@@ -74,7 +74,6 @@ const marioSmallWalk1 = M([
   '.......yy.yy....',
   '......kk.kkk....',
   '.....kk...kk....',
-  '................',
 ], PAL.mario);
 
 const marioSmallWalk2 = M([
@@ -92,7 +91,6 @@ const marioSmallWalk2 = M([
   '....yy.yy.......',
   '....kkk.kk......',
   '....kk...kk.....',
-  '................',
 ], PAL.mario);
 
 const marioSmallJump = M([
@@ -110,12 +108,13 @@ const marioSmallJump = M([
   '.....yy..yy.....',
   '....kk....kk....',
   '................',
-  '................',
 ], PAL.mario);
 
 const MARIO_SMALL = { stand: marioSmallStand, walk: [marioSmallWalk1, marioSmallWalk2], jump: marioSmallJump };
 
-// --- Mario (big), 16x24 ---
+// --- Mario (big), 16x18 (legs trimmed to their actual content - the old
+// version padded 6 dead rows below the feet, which made big Mario render
+// as if hovering above the ground) ---
 function bigFrame(extra) {
   return M([
     '......rrr.......',
@@ -140,38 +139,28 @@ const marioBigStand = bigFrame([
   '.....yy..yy.....',
   '....kkk..kkk....',
   '....kkk..kkk....',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
 ]);
+// Two distinct stepping poses (front leg forward, alternating) so walking
+// actually animates instead of alternating with the standing pose.
 const marioBigWalk1 = bigFrame([
   '....syy..yy.....',
   '...ssyy..yy.....',
   '..sskkk..kkk....',
   '.ss..kk..kk.....',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
+]);
+const marioBigWalk2 = bigFrame([
+  '.....yy..yyss...',
+  '.....yy..yyss...',
+  '....kkk..kkkss..',
+  '....kkk..kk..ss.',
 ]);
 const marioBigJump = bigFrame([
   '.....yy.yy......',
   '....kk...kk.....',
   '................',
   '................',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
 ]);
-const MARIO_BIG = { stand: marioBigStand, walk: [marioBigWalk1, marioBigStand], jump: marioBigJump };
+const MARIO_BIG = { stand: marioBigStand, walk: [marioBigWalk1, marioBigWalk2], jump: marioBigJump };
 
 // --- Goomba, 16x16 ---
 const goombaWalk1 = M([

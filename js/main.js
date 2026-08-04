@@ -11,6 +11,7 @@ const FOUND_BUT_FINISHED_MESSAGE =
   "🏁 Level complete!\nYou already found the hidden clue — good luck with the rest of the hunt!";
 
 const ASSIST_MODE_DEATH_THRESHOLD = 3;
+const MARIO_DRAW_SCALE = 1.5; // native sprite px -> on-screen px
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -265,8 +266,11 @@ function drawPlayer(camX) {
 
   ctx.save();
   const x = p.x - camX;
-  const w = p.big ? 24 : 24;
-  const h = p.big ? (24 * 24 / 16) : 24;
+  // Derive draw size from the sprite's own native pixel-art dimensions
+  // (rather than a hardcoded guess) so it always sits flush with the floor,
+  // even if a sprite's row count changes.
+  const w = spr.width * MARIO_DRAW_SCALE;
+  const h = spr.height * MARIO_DRAW_SCALE;
   if (p.facing < 0) {
     ctx.translate(x + w, p.y - (h - p.h));
     ctx.scale(-1, 1);
@@ -308,7 +312,7 @@ function drawPipeEnterAnim(camX) {
   const dropY = p.y + Math.min(40, game.pipeAnimTimer / 12);
   ctx.save();
   const x = p.x - camX;
-  const w = 24, h = p.big ? 36 : 24;
+  const w = set.stand.width * MARIO_DRAW_SCALE, h = set.stand.height * MARIO_DRAW_SCALE;
   ctx.drawImage(set.stand, x, dropY - (h - p.h), w, h);
   ctx.restore();
 }
@@ -382,7 +386,7 @@ function update(dt) {
   if (game.state === 'playing') {
     updatePlayer(game.player, Input, dt, world);
     game.enemies.forEach(e => updateEnemy(e, dt));
-    game.mushrooms.forEach(m => updateMushroom(m));
+    game.mushrooms.forEach(m => updateMushroom(m, dt));
     checkEnemyCollisions();
     checkFlagpole();
 
@@ -462,6 +466,7 @@ function boot() {
 
   document.getElementById('start-btn').addEventListener('click', () => {
     Sfx.unlock();
+    Sfx.startMusic();
     document.getElementById('start-overlay').classList.add('hidden');
     game.state = 'playing';
   }, { once: true });

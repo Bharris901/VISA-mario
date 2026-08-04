@@ -77,7 +77,7 @@ you'd rather use one of those instead.
 index.html          markup + overlays (start, rotate-prompt, message, HUD)
 style.css            layout, HUD, touch controls, responsive/orientation CSS
 js/sprites.js        pixel-art sprite definitions (Mario, enemies, tiles...)
-js/audio.js          procedural 8-bit-style sound effects (WebAudio)
+js/audio.js          procedural 8-bit-style sound effects + background music (WebAudio)
 js/input.js          keyboard + touch input
 js/level.js          tile map layout + entity spawn list
 js/physics.js        movement tuning + tile collision

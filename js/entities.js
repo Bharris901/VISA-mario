@@ -26,8 +26,15 @@ function resizePlayerBox(p) {
 function updatePlayer(p, input, dt, world) {
   if (p.inPipe || p.dead) return;
 
+  // Normalize all physics to be independent of actual device frame rate -
+  // every constant below is tuned assuming ~60fps, and dtScale rescales the
+  // per-frame deltas to match however fast this device is actually ticking
+  // (matters on 90/120Hz phones, which would otherwise run everything,
+  // including jump apex timing, at 1.5-2x speed).
+  const dtScale = dt / FRAME_MS;
+
   const runMax = input.runHeld ? PHYS.RUN_MAX : PHYS.WALK_MAX;
-  const accel = (input.runHeld ? PHYS.RUN_ACCEL : PHYS.WALK_ACCEL) * (p.onGround ? 1 : PHYS.AIR_ACCEL_MULT);
+  const accel = (input.runHeld ? PHYS.RUN_ACCEL : PHYS.WALK_ACCEL) * (p.onGround ? 1 : PHYS.AIR_ACCEL_MULT) * dtScale;
 
   if (input.left && !input.right) {
     p.vx -= accel;
@@ -38,13 +45,14 @@ function updatePlayer(p, input, dt, world) {
     if (p.vx > runMax) p.vx = runMax;
     p.facing = 1;
   } else {
-    if (p.vx > 0) p.vx = Math.max(0, p.vx - PHYS.FRICTION);
-    else if (p.vx < 0) p.vx = Math.min(0, p.vx + PHYS.FRICTION);
+    const friction = PHYS.FRICTION * dtScale;
+    if (p.vx > 0) p.vx = Math.max(0, p.vx - friction);
+    else if (p.vx < 0) p.vx = Math.min(0, p.vx + friction);
   }
 
   // Coyote time + jump buffering for forgiving jumps
-  if (p.onGround) p.coyote = PHYS.COYOTE_FRAMES; else p.coyote = Math.max(0, p.coyote - 1);
-  if (input.jumpPressed) p.jumpBuffer = PHYS.JUMP_BUFFER_FRAMES; else p.jumpBuffer = Math.max(0, p.jumpBuffer - 1);
+  if (p.onGround) p.coyote = PHYS.COYOTE_FRAMES; else p.coyote = Math.max(0, p.coyote - dtScale);
+  if (input.jumpPressed) p.jumpBuffer = PHYS.JUMP_BUFFER_FRAMES; else p.jumpBuffer = Math.max(0, p.jumpBuffer - dtScale);
 
   if (p.jumpBuffer > 0 && p.coyote > 0) {
     p.vy = PHYS.JUMP_VELOCITY;
@@ -57,16 +65,19 @@ function updatePlayer(p, input, dt, world) {
     p.vy = PHYS.JUMP_VELOCITY * PHYS.JUMP_CUT_MULT;
   }
 
-  const g = p.vy > 0 ? PHYS.GRAVITY * PHYS.FALL_GRAVITY_MULT : PHYS.GRAVITY;
+  const g = (p.vy > 0 ? PHYS.GRAVITY * PHYS.FALL_GRAVITY_MULT : PHYS.GRAVITY) * dtScale;
   p.vy = Math.min(p.vy + g, PHYS.TERMINAL_VELOCITY);
 
-  moveAndCollide(p, p.vx, 0, null);
-  moveAndCollide(p, 0, p.vy, (col, row, ch) => onHeadBump(world, p, col, row, ch));
+  moveAndCollide(p, p.vx * dtScale, 0, null);
+  moveAndCollide(p, 0, p.vy * dtScale, (col, row, ch) => onHeadBump(world, p, col, row, ch));
 
-  // Animation
+  // Animation: cycle frames based on distance actually covered, not just
+  // elapsed time, so running visibly moves Mario's legs faster than walking
+  // (previously the walk cycle advanced at a fixed rate regardless of
+  // speed, so RUN didn't look like it was doing anything).
   if (Math.abs(p.vx) > 0.2 && p.onGround) {
-    p.animTimer += dt;
-    if (p.animTimer > 90) { p.animTimer = 0; p.animFrame = 1 - p.animFrame; }
+    p.animTimer += Math.abs(p.vx) * dtScale;
+    if (p.animTimer > 14) { p.animTimer = 0; p.animFrame = 1 - p.animFrame; }
   } else {
     p.animFrame = 0; p.animTimer = 0;
   }
@@ -143,19 +154,20 @@ function createKoopa(col) {
 
 function updateEnemy(e, dt) {
   if (e.dead) return;
-  if (e.type === 'goomba' && e.squished > 0) { e.squished--; return; }
+  if (e.type === 'goomba' && e.squished > 0) { e.squished -= dt; return; }
 
+  const dtScale = dt / FRAME_MS;
   const speed = (e.type === 'koopa' && e.shell) ? e.shellVx : e.vx;
   const prevX = e.x;
-  moveAndCollide(e, speed, 0, null);
+  moveAndCollide(e, speed * dtScale, 0, null);
   // reverse on wall hit
-  if (Math.abs(e.x - prevX) < Math.abs(speed) * 0.5) {
+  if (Math.abs(e.x - prevX) < Math.abs(speed) * dtScale * 0.5) {
     e.vx *= -1;
     if (e.type === 'koopa') e.shellVx *= -1;
   }
   // gravity
-  e.vy = Math.min(e.vy + PHYS.GRAVITY, PHYS.TERMINAL_VELOCITY);
-  moveAndCollide(e, 0, e.vy, null);
+  e.vy = Math.min(e.vy + PHYS.GRAVITY * dtScale, PHYS.TERMINAL_VELOCITY);
+  moveAndCollide(e, 0, e.vy * dtScale, null);
 
   // reverse at ledges (only when walking, not shells sliding - shells keep going for arcade feel)
   if (!(e.type === 'koopa' && e.shell)) {
@@ -174,11 +186,12 @@ function updateEnemy(e, dt) {
 function createMushroom(col, row) {
   return { x: col * TILE, y: row * TILE, w: 16, h: 16, vx: 1.2, vy: -2, emerging: 12 };
 }
-function updateMushroom(m) {
-  if (m.emerging > 0) { m.y -= 1; m.emerging--; return; }
+function updateMushroom(m, dt) {
+  const dtScale = dt / FRAME_MS;
+  if (m.emerging > 0) { m.y -= 1 * dtScale; m.emerging -= dtScale; return; }
   const prevX = m.x;
-  moveAndCollide(m, m.vx, 0, null);
-  if (Math.abs(m.x - prevX) < Math.abs(m.vx) * 0.5) m.vx *= -1;
-  m.vy = Math.min(m.vy + PHYS.GRAVITY, PHYS.TERMINAL_VELOCITY);
-  moveAndCollide(m, 0, m.vy, null);
+  moveAndCollide(m, m.vx * dtScale, 0, null);
+  if (Math.abs(m.x - prevX) < Math.abs(m.vx) * dtScale * 0.5) m.vx *= -1;
+  m.vy = Math.min(m.vy + PHYS.GRAVITY * dtScale, PHYS.TERMINAL_VELOCITY);
+  moveAndCollide(m, 0, m.vy * dtScale, null);
 }

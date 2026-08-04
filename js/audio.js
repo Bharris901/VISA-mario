@@ -49,8 +49,68 @@ const Sfx = (() => {
     } catch (e) {}
   }
 
+  // Schedules a note at an *absolute* AudioContext time (rather than "now
+  // + delay") so a lookahead scheduler can queue notes precisely without
+  // setTimeout drift - the standard approach for WebAudio music loops.
+  function toneAt(startTime, freq, dur, type, vol) {
+    try {
+      const c = ensure();
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(vol, startTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
+      osc.connect(gain).connect(c.destination);
+      osc.start(startTime);
+      osc.stop(startTime + dur + 0.02);
+    } catch (e) {}
+  }
+
+  // --- Background music: a short original 8-bit-style loop (not the Mario
+  // theme - an original composition), kept quiet so it sits under the SFX. ---
+  const STEP_SEC = 0.155;
+  const MUSIC_VOL = 0.045; // deliberately well below SFX (~0.15-0.2)
+  // simple original melody, one note per step ('.' = rest)
+  const MELODY = [659,'.',784,'.', 880,'.',784,'.', 659,'.',587,'.', 659,'.','.', '.',
+                  784,'.',880,'.', 988,'.',880,'.', 784,'.',659,'.', 587,'.','.', '.'];
+  const BASS =   [330,'.','.','.', 220,'.','.','.', 349,'.','.','.', 262,'.','.','.',
+                  330,'.','.','.', 220,'.','.','.', 392,'.','.','.', 294,'.','.','.'];
+
+  let musicOn = false;
+  let musicStep = 0;
+  let nextNoteTime = 0;
+  let schedulerHandle = null;
+
+  function scheduleAhead() {
+    const c = ensure();
+    while (nextNoteTime < c.currentTime + 0.2) {
+      const mel = MELODY[musicStep % MELODY.length];
+      const bass = BASS[musicStep % BASS.length];
+      if (mel !== '.') toneAt(nextNoteTime, mel, STEP_SEC * 0.9, 'square', MUSIC_VOL);
+      if (bass !== '.') toneAt(nextNoteTime, bass, STEP_SEC * 0.95, 'triangle', MUSIC_VOL * 0.9);
+      nextNoteTime += STEP_SEC;
+      musicStep++;
+    }
+  }
+
   return {
     unlock() { ensure(); },
+    startMusic() {
+      if (musicOn) return;
+      musicOn = true;
+      const c = ensure();
+      musicStep = 0;
+      nextNoteTime = c.currentTime + 0.05;
+      scheduleAhead();
+      schedulerHandle = setInterval(scheduleAhead, 100);
+    },
+    stopMusic() {
+      musicOn = false;
+      if (schedulerHandle) clearInterval(schedulerHandle);
+      schedulerHandle = null;
+    },
     jump() { slide(300, 600, 0.18); },
     coin() { tone(988, 0.08, 'square', 0.18); tone(1319, 0.18, 'square', 0.15, 0.06); },
     stomp() { slide(180, 60, 0.12, 'square', 0.2); },

@@ -5,6 +5,12 @@
 // regular gamers.
 // ---------------------------------------------------------------------------
 
+// All values below are tuned as "per 1/60s frame" deltas. updatePlayer/
+// updateEnemy multiply them by dtScale (actual-dt / FRAME_MS) before use, so
+// the game plays at the same real-world speed regardless of the device's
+// actual refresh rate (60Hz vs 90/120Hz phones).
+const FRAME_MS = 1000 / 60;
+
 const PHYS = {
   GRAVITY: 0.62,
   FALL_GRAVITY_MULT: 1.15,   // extra gravity once falling, snappier arc
@@ -14,7 +20,11 @@ const PHYS = {
   WALK_MAX: 2.6,
   RUN_MAX: 4.4,
   AIR_ACCEL_MULT: 0.85,
-  JUMP_VELOCITY: -10.8,
+  // -13 gives a ~137px apex (v^2/2g), comfortably clearing the tallest
+  // (4-tile / 96px) pipe with margin - the old -10.8 (~94px apex) was
+  // mathematically just short of the 96px needed, making that pipe
+  // essentially impossible to clear.
+  JUMP_VELOCITY: -13,
   JUMP_CUT_MULT: 0.45,       // releasing jump early cuts upward velocity
   TERMINAL_VELOCITY: 11,
   COYOTE_FRAMES: 7,          // grace window after walking off a ledge
