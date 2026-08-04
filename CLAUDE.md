@@ -40,6 +40,16 @@ sharp edge worth knowing: **GitHub Pages project-site URLs are
 case-sensitive** in the repo-name path segment, unlike github.com's own repo
 pages which are not — `https://<user>.github.io/<Exact-Repo-Case>/`.
 
+**Cache-busting.** `index.html` loads `style.css` and every `js/*.js` file
+with a shared `?v=N` query string. Bump `N` on *every* commit that touches
+`style.css` or any `js/*.js` file (a simple find-and-replace across
+`index.html`), even for small tweaks. This was a real issue: a CSS-only
+change once failed to show up on a real phone even after reloading, because
+GitHub Pages/the browser served the previously-cached `style.css` while the
+freshly-fetched `index.html` showed the new markup — an unbumped version
+query is invisible in testing (a fresh session/incognito load has no old
+cache to hit) and only bites real users with a prior visit.
+
 ## Architecture
 
 **No modules, no bundler.** Every file in `js/` is loaded as a plain
