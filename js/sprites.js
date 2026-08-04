@@ -332,19 +332,22 @@ const mushroom1upSprite = M([
 // --- Blocks / terrain, 16x16 tiles ---
 // Rounded corners + corner bolts + a bold white "?" (reusing the original
 // mark's proven shape, just recolored) to match the reference block art.
+// A bolder, blockier "?" (thick hook + stem + dot) - the previous mark used
+// thin diagonal strokes to approximate a curve, which read as a fuzzy blob
+// at this resolution rather than a clearly legible question mark.
 const questionBlock = M([
   '.oooooooooooooo.',
   'oybyyyyyyyyyybyo',
-  'oyoookkkkkooyyyo',
-  'oyokkkyyyykk.yyo',
-  'oyokkyyoooykkyyo',
-  'oyokkyy.ooykkyyo',
-  'oyoookkkkkooyyyo',
-  'oyyyyoookkyyyyyo',
-  'oyyyyyyokkyyyyyo',
-  'oyyyyyyyokyyyyyo',
-  'oyyyyyyokkyyyyyo',
-  'oyyyyyoooyyyyyyo',
+  'oyyyykkkkkkyyyyo',
+  'oyyyykkkkkkyyyyo',
+  'oyyyyyyyykkyyyyo',
+  'oyyyyyyyykkyyyyo',
+  'oyyyyykkkkyyyyyo',
+  'oyyyyyykkyyyyyyo',
+  'oyyyyyykkyyyyyyo',
+  'oyyyyyyyyyyyyyyo',
+  'oyyyyyykkyyyyyyo',
+  'oyyyyyykkyyyyyyo',
   'oyyyyyyyyyyyyyyo',
   'oyyyyyyyyyyyyyyo',
   'oybyyyyyyyyyybyo',
@@ -471,21 +474,22 @@ const ballSprite = M([
 ], PAL.misc);
 
 // 8-bit grimacing face for the "try again" death screen.
+// Classic 8-bit "KO'd" face: X eyes + an open circle mouth.
 const grimaceFace = M([
   '.....kkkkkk.....',
   '...kkyyyyyykk...',
   '..kyyyyyyyyyyk..',
   '.kyyyyyyyyyyyyk.',
   'kyyyyyyyyyyyyyyk',
-  'kyyykkyyyykkyyyk',
+  'kyyk.kyyyk.kyyyk',
+  'kyyykyyyyykyyyyk',
+  'kyyk.kyyyk.kyyyk',
   'kyyyyyyyyyyyyyyk',
+  'kyyyyykkkkyyyyyk',
+  'kyyyyykyykyyyyyk',
+  'kyyyyykyykyyyyyk',
+  'kyyyyykkkkyyyyyk',
   'kyyyyyyyyyyyyyyk',
-  'kyyykkkkkkkkyyyk',
-  'kyywwwwwwwwwwyyk',
-  'kyywkwkwkwkwwyyk',
-  'kyywwwwwwwwwwyyk',
-  'kyyykkkkkkkkyyyk',
-  '.kyyyyyyyyyyyyk.',
   '...kkyyyyyykk...',
   '.....kkkkkk.....',
 ], PAL.face);

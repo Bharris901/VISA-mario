@@ -84,13 +84,17 @@ function updatePlayer(p, input, dt, world) {
   if (p.hurtInvuln > 0) p.hurtInvuln--;
 
   // Secret pipe entry: standing on the secret pipe cap + pressing down
-  // (via the joystick or the dedicated DESCEND button - either works)
+  // (via the joystick or the dedicated DESCEND button - either works).
+  // Trying to descend a normal (non-secret) pipe gets a subtle "nope" sound
+  // instead, once per press rather than spamming while held.
   if ((input.down || input.descendHeld) && p.onGround) {
     const footCol = Math.floor((p.x + p.w / 2) / TILE);
     const footRow = Math.floor((p.y + p.h) / TILE);
     const belowCh = tileAt(footCol, footRow);
     if (belowCh === 'g' || belowCh === 'h') {
       world.enterSecretPipe();
+    } else if ((belowCh === 'T' || belowCh === 'U') && input.descendPressed) {
+      world.denyDescend();
     }
   }
 
@@ -155,11 +159,27 @@ function createGoomba(col) {
   // Goomba is 16px tall, shorter than a full TILE (24px), so the resting
   // y is row*TILE - h, not (row-1)*TILE - that formula only happens to work
   // for entities exactly one tile tall (like the koopa below).
-  return { type: 'goomba', x: col * TILE, y: row * TILE - 16, w: 16, h: 16, vx: -1.0, vy: 0, dead: false, squished: 0, animTimer: 0, animFrame: 0 };
+  // dir/moveSpeed are the *authoritative* patrol state (see updateEnemy) -
+  // vx is just derived from them every frame, never read back as state.
+  return { type: 'goomba', x: col * TILE, y: row * TILE - 16, w: 16, h: 16, dir: -1, moveSpeed: 1.0, vx: -1.0, vy: 0, dead: false, squished: 0, animTimer: 0, animFrame: 0 };
 }
 function createKoopa(col) {
   const row = groundSurfaceRowAt(col);
-  return { type: 'koopa', x: col * TILE, y: (row - 2) * TILE, w: 16, h: 24, vx: -1.0, vy: 0, dead: false, shell: false, shellVx: 0, animTimer: 0, animFrame: 0 };
+  return { type: 'koopa', x: col * TILE, y: (row - 2) * TILE, w: 16, h: 24, dir: -1, moveSpeed: 1.0, vx: -1.0, vy: 0, dead: false, shell: false, shellVx: 0, animTimer: 0, animFrame: 0 };
+}
+
+// Is there a solid tile directly ahead (in direction `dir`), anywhere across
+// this entity's full vertical extent? Checked *before* moving, rather than
+// inferring a wall hit from position deltas after the fact.
+function isWallAhead(e, dir) {
+  const aheadX = e.x + (dir > 0 ? e.w : -1);
+  const aheadCol = Math.floor(aheadX / TILE);
+  const rowTop = Math.floor(e.y / TILE);
+  const rowBot = Math.floor((e.y + e.h - 1) / TILE);
+  for (let r = rowTop; r <= rowBot; r++) {
+    if (isSolid(tileAt(aheadCol, r))) return true;
+  }
+  return false;
 }
 
 function updateEnemy(e, dt) {
@@ -167,18 +187,29 @@ function updateEnemy(e, dt) {
   if (e.type === 'goomba' && e.squished > 0) { e.squished -= dt; return; }
 
   const dtScale = dt / FRAME_MS;
-  const speed = (e.type === 'koopa' && e.shell) ? e.shellVx : e.vx;
-  const prevX = e.x;
-  moveAndCollide(e, speed * dtScale, 0, null);
-  // Reverse on wall hit. Note: moveAndCollide already zeroed e.vx/e.shellVx
-  // as part of resolving the collision, so reversing *those* (0 * -1 = 0)
-  // silently did nothing - enemies would hit a wall and just stop dead
-  // instead of turning around. Reverse the pre-move `speed` we captured
-  // above instead.
-  if (Math.abs(e.x - prevX) < Math.abs(speed) * dtScale * 0.5) {
-    if (e.type === 'koopa' && e.shell) e.shellVx = -speed;
-    else e.vx = -speed;
+
+  if (e.type === 'koopa' && e.shell) {
+    // Kicked shells: shellVx is an absolute velocity, 0 while resting.
+    if (e.shellVx !== 0 && isWallAhead(e, e.shellVx > 0 ? 1 : -1)) {
+      e.shellVx = -e.shellVx;
+    }
+    moveAndCollide(e, e.shellVx * dtScale, 0, null);
+  } else {
+    // Reverse *before* moving if a wall is directly ahead, using the
+    // authoritative dir/moveSpeed (never derived from e.vx). This is what
+    // actually fixes enemies permanently stopping at obstacles: the old
+    // code inferred a wall hit from "did I move as far as intended", but
+    // moveAndCollide had already zeroed e.vx as part of resolving that same
+    // collision - if the heuristic ever missed by a frame, e.vx was left at
+    // 0 with no way to recover (reversing 0 is still 0), so the goomba was
+    // stuck there for good. dir/moveSpeed are separate fields moveAndCollide
+    // never touches, so they can't be silently corrupted this way, and
+    // every frame re-derives vx fresh from them.
+    if (isWallAhead(e, e.dir)) e.dir *= -1;
+    e.vx = e.dir * e.moveSpeed;
+    moveAndCollide(e, e.vx * dtScale, 0, null);
   }
+
   // gravity
   e.vy = Math.min(e.vy + PHYS.GRAVITY * dtScale, PHYS.TERMINAL_VELOCITY);
   moveAndCollide(e, 0, e.vy * dtScale, null);
@@ -186,9 +217,10 @@ function updateEnemy(e, dt) {
   // reverse at ledges (only when walking, not shells sliding - shells keep going for arcade feel)
   if (!(e.type === 'koopa' && e.shell)) {
     const footRow = Math.floor((e.y + e.h + 1) / TILE);
-    const aheadCol = Math.floor((e.x + (e.vx > 0 ? e.w + 1 : -1)) / TILE);
+    const aheadCol = Math.floor((e.x + (e.dir > 0 ? e.w + 1 : -1)) / TILE);
     if (!isSolid(tileAt(aheadCol, footRow))) {
-      e.vx *= -1;
+      e.dir *= -1;
+      e.vx = e.dir * e.moveSpeed;
     }
   }
 

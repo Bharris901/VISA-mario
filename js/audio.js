@@ -144,8 +144,16 @@ const Sfx = (() => {
     bump() { tone(140, 0.08, 'square', 0.18); },
     powerup() { [523,659,784,1047].forEach((f,i)=>tone(f,0.12,'square',0.16,i*0.09)); },
     pipe() { slide(220, 90, 0.4, 'sine', 0.2); },
+    // Subtle "nope" for trying to descend a pipe that isn't the secret one -
+    // deliberately quiet/short so it reads as a gentle nudge, not a buzzer.
+    denied() { tone(180, 0.07, 'square', 0.1); tone(140, 0.09, 'square', 0.09, 0.05); },
     die() { slide(400, 100, 0.6, 'sawtooth', 0.18); },
     win() { [523,659,784,1047,1319].forEach((f,i)=>tone(f,0.18,'triangle',0.18,i*0.12)); },
+    firework() {
+      const base = 700 + Math.random() * 500;
+      slide(base, base * 1.8, 0.12, 'sine', 0.14);
+      tone(base * 2, 0.06, 'square', 0.08, 0.05);
+    },
     fail() { slide(300, 150, 0.3, 'sawtooth', 0.15); },
     click() { tone(700, 0.05, 'square', 0.1); },
     reelStop() { tone(440, 0.06, 'square', 0.15); },

@@ -13,12 +13,18 @@ const Input = {
   up: false,
   jumpHeld: false,
   jumpPressed: false, // true only on the frame the jump was first pressed
+  descendPressed: false, // true only on the frame down/descend was first pressed
   _jumpWasHeld: false,
+  _downWasHeld: false,
 };
 
 Input.update = function () {
   this.jumpPressed = this.jumpHeld && !this._jumpWasHeld;
   this._jumpWasHeld = this.jumpHeld;
+
+  const downNow = this.down || this.descendHeld;
+  this.descendPressed = downNow && !this._downWasHeld;
+  this._downWasHeld = downNow;
 };
 
 function initInput() {

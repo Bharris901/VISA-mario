@@ -27,7 +27,7 @@ function resetLevelTiles() {
 }
 
 const game = {
-  state: 'start', // start | playing | pipeEnter | secretRoom | minigame | frozen
+  state: 'start', // start | playing | pipeEnter | secretRoom | minigame | flagSlide | frozen
   player: null,
   enemies: [],
   mushrooms: [],
@@ -42,6 +42,8 @@ const game = {
   assistMode: false,
   pipeAnimTimer: 0,
   secretRoomTimer: 0,
+  flagSlideTimer: 0,
+  flagSlideStartY: 0,
   minigame: null,
   paused: false,
 };
@@ -59,6 +61,15 @@ function resetLevel() {
   game.clueFound = false;
   game.cameraX = 0;
   game.state = 'playing';
+}
+
+// Used for any "start fresh" button (death's Start Over, the flagpole's
+// Play Again) so the music always begins again from the top of the loop -
+// not used for the mini-game win continue, which resumes play in place.
+function restartLevel() {
+  Sfx.stopMusic();
+  Sfx.startMusic();
+  resetLevel();
 }
 
 // --- world callbacks passed into player/enemy update code ---
@@ -88,6 +99,22 @@ const world = {
   spawnMushroom(col, row, kind) {
     game.mushrooms.push(createMushroom(col, row, kind));
   },
+  spawnFloatingText(x, y, text, color) {
+    game.particles.push({ x, y, vy: -0.7, life: 900, type: 'text', text, color });
+  },
+  spawnFireworks(x, y) {
+    const colors = ['#ff5f5f', '#5fd1ff', '#ffe15f', '#5fff8f', '#d15fff', '#ff9f5f'];
+    for (let i = 0; i < 22; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.3 + Math.random() * 2.4;
+      game.particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 1,
+        life: 650 + Math.random() * 350, maxLife: 1000,
+        type: 'firework', color: colors[i % colors.length],
+      });
+    }
+  },
   enterSecretPipe() {
     if (game.state !== 'playing') return;
     game.state = 'pipeEnter';
@@ -95,6 +122,9 @@ const world = {
     game.player.inPipe = true;
     game.player.vx = 0; game.player.vy = 0;
     Sfx.pipe();
+  },
+  denyDescend() {
+    Sfx.denied();
   },
   onPlayerDeath(reason) {
     if (game.player.dead) return;
@@ -104,7 +134,7 @@ const world = {
     Sfx.die();
     game.state = 'frozen';
     setTimeout(() => {
-      UI.showMessage('Try again Memphis Mario!', () => resetLevel(), 'START OVER', SPRITES.grimaceFace);
+      UI.showMessage('Try again Memphis Mario!', () => restartLevel(), 'START OVER', SPRITES.grimaceFace);
     }, 500);
   },
 };
@@ -162,6 +192,7 @@ function checkEnemyCollisions() {
         game.extraLives++;
         game.score += 1000;
         Sfx.powerup();
+        world.spawnFloatingText(p.x, p.y - 12, '1UP', '#5fff8f');
       } else {
         growPlayer(p);
         game.score += 1000;
@@ -175,13 +206,33 @@ function checkFlagpole() {
   const p = game.player;
   if (p.dead || p.inPipe) return;
   if (p.x + p.w / 2 >= FLAG_COL * TILE) {
-    game.state = 'frozen';
-    Sfx.win();
-    const msg = game.clueFound ? FOUND_BUT_FINISHED_MESSAGE : NOT_FOUND_MESSAGE;
-    setTimeout(() => {
-      UI.showMessage(msg, () => resetLevel(), 'PLAY AGAIN');
-    }, 400);
+    // Grab the pole at whatever height it's touched (including landing on
+    // top of it from a jump off the final staircase) and slide down to the
+    // bottom - the message/fireworks/music-stop happen once he lands, not
+    // the instant he touches the pole.
+    game.state = 'flagSlide';
+    game.player.x = FLAG_COL * TILE + (TILE - p.w) / 2;
+    game.player.vx = 0; game.player.vy = 0;
+    game.flagSlideTimer = 0;
+    game.flagSlideStartY = game.player.y;
+    Sfx.bump();
   }
+}
+
+function finishFlagpole() {
+  game.state = 'frozen';
+  Sfx.stopMusic();
+  Sfx.win();
+  const p = game.player;
+  const baseX = p.x + p.w / 2, baseY = p.y;
+  world.spawnFireworks(baseX, baseY - 20);
+  Sfx.firework();
+  setTimeout(() => { world.spawnFireworks(baseX - 20, baseY - 40); Sfx.firework(); }, 220);
+  setTimeout(() => { world.spawnFireworks(baseX + 20, baseY - 30); Sfx.firework(); }, 440);
+  const msg = game.clueFound ? FOUND_BUT_FINISHED_MESSAGE : NOT_FOUND_MESSAGE;
+  setTimeout(() => {
+    UI.showMessage(msg, () => restartLevel(), 'PLAY AGAIN');
+  }, 900);
 }
 
 // --- Rendering ---
@@ -270,17 +321,41 @@ function drawMushrooms(camX) {
 function drawParticles(camX, dt) {
   game.particles = game.particles.filter(p => {
     p.life -= dt;
+
+    // --- physics per type ---
     if (p.type === 'coin') {
       p.y += p.vy; p.vy += 0.35;
+    } else if (p.type === 'firework') {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.06; // gentle gravity, floaty burst
+    } else if (p.type === 'text') {
+      p.y += p.vy;
     } else if (p.vx !== undefined) {
       p.x += p.vx; p.y += p.vy; p.vy += 0.25;
     } else {
       p.y -= 0.6;
     }
     if (p.life <= 0) return false;
+
+    // --- drawing per type ---
     if (p.type === 'coin') {
       ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 200));
       drawSprite(SPRITES.coin, p.x - camX, p.y, 16, 16);
+      ctx.globalAlpha = 1;
+    } else if (p.type === 'firework') {
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x - camX, p.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (p.type === 'text') {
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 300));
+      ctx.font = 'bold 13px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#000';
+      ctx.fillText(p.text, p.x - camX + 1, p.y + 1);
+      ctx.fillStyle = p.color;
+      ctx.fillText(p.text, p.x - camX, p.y);
       ctx.globalAlpha = 1;
     } else {
       ctx.fillStyle = p.type === 'brick' ? '#c9682a' : '#fff';
@@ -445,6 +520,18 @@ function update(dt) {
     if (game.pipeAnimTimer > 700) {
       game.state = 'secretRoom';
       game.secretRoomTimer = 0;
+    }
+  }
+  else if (game.state === 'flagSlide') {
+    const p = game.player;
+    const SLIDE_MS = 650;
+    game.flagSlideTimer += dt;
+    const t = Math.min(1, game.flagSlideTimer / SLIDE_MS);
+    const standY = GROUND_ROW * TILE - p.h;
+    p.y = game.flagSlideStartY + (standY - game.flagSlideStartY) * t;
+    if (t >= 1) {
+      p.y = standY;
+      finishFlagpole();
     }
   }
   else if (game.state === 'secretRoom') {

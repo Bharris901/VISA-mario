@@ -45,6 +45,8 @@ There's a single ground speed (no RUN button/speed tier) - simpler to reason
 about for a one-day event with mostly non-gamers. DESCEND is a dedicated
 button alternative to dragging the stick down (mainly so entering the secret
 pipe doesn't hinge on nailing a precise drag distance) - either input works.
+Trying to descend any *other* pipe gives a soft "nope" sound instead of
+doing nothing silently.
 
 ### Usability choices (why controls feel more forgiving than "true" NES)
 
@@ -64,8 +66,9 @@ pipe doesn't hinge on nailing a precise drag distance) - either input works.
 
 Two question blocks (near the start, and roughly halfway through) spawn a
 mushroom instead of a coin: a growth mushroom if Mario is still small, or a
-green 1-up mushroom instead if he's already big (bonus points + an extra
-life on the HUD counter - cosmetic, since dying never actually ends play).
+green 1-up mushroom instead if he's already big (a "1UP" pops up above his
+head, plus bonus points and an extra life on the HUD counter - cosmetic,
+since dying never actually ends play).
 
 ## How the hidden clue works
 
@@ -82,6 +85,11 @@ life on the HUD counter - cosmetic, since dying never actually ends play).
   restarts the level.
 - Reaching the flagpole **after already finding the clue** shows a
   congratulatory completion message instead.
+- Either way, touching the pole (including landing on top of it from a
+  jump off the final staircase) grabs on and slides down to the bottom
+  first; landing is when fireworks go off, the music stops, and the
+  message appears a beat later. Tapping Play Again/Start Over restarts the
+  music from the top of the loop.
 
 ## Project structure
 

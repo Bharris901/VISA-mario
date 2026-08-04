@@ -18,7 +18,7 @@
 
 const TILE = 24;
 const ROWS = 12;
-const COLS = 230;
+const COLS = 240;
 const GROUND_ROW = 9; // top surface row index of normal ground
 
 function buildLevel() {
@@ -115,7 +115,12 @@ function buildLevel() {
 
   // --- Final big staircase up to the flagpole ---
   const flagStairTop = stairsUp(208, 8, 1);
-  const flagCol = 219;
+  // Far enough from the stair-top that a running jump off the peak is
+  // needed to land on the pole from above (rather than just strolling into
+  // it), but well within jump range - the flat ground the whole way there
+  // means falling short just means walking the rest, never falling short
+  // into a gap.
+  const flagCol = 228;
   // Shortened on purpose (6 tiles instead of spanning the full screen
   // height) so the ball finial at the top is clearly visible with sky
   // above it, rather than running off the top of the view.
@@ -168,14 +173,19 @@ function groundSurfaceRowAt(col) {
 // --- Entity spawns (Goombas only - no green enemies per design) ---
 const ENTITY_SPAWNS = [
   { type: 'goomba', col: 18 },
+  { type: 'goomba', col: 33 },
   { type: 'goomba', col: 42 },
+  { type: 'goomba', col: 50 },
   { type: 'goomba', col: 63 },
   { type: 'goomba', col: 74 },
   { type: 'goomba', col: 96 },
+  { type: 'goomba', col: 100 },
   { type: 'goomba', col: 112 },
   { type: 'goomba', col: 132 },
   { type: 'goomba', col: 134 },
+  { type: 'goomba', col: 140 },
   { type: 'goomba', col: 160 },
+  { type: 'goomba', col: 170 },
   { type: 'goomba', col: 198 },
 ];
 

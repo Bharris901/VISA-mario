@@ -59,11 +59,21 @@ global's existence with `typeof X !== 'undefined'`, never `window.X`.
 **Rendering & the state machine (`js/main.js`).** A single 480×288 `<canvas>`
 is tile-based (`TILE = 24`px, `ROWS`/`COLS`/`GROUND_ROW` from `level.js`).
 `game.state` drives both `update()` and `render()` as a simple switch:
-`start → playing → pipeEnter → secretRoom → minigame → frozen`, looping back
-to `playing` (via `resetLevel()`) on death or after the secret-pipe payoff.
-`frozen` is used any time a message overlay needs the game paused underneath
-it (win/lose/flagpole messages) — check that state before wiring up new
-transitions so gameplay doesn't keep running behind an overlay.
+`start → playing → pipeEnter → secretRoom → minigame → flagSlide → frozen`,
+looping back to `playing` (via `resetLevel()`) on death or after the
+secret-pipe payoff. `frozen` is used any time a message overlay needs the
+game paused underneath it (win/lose/flagpole messages) — check that state
+before wiring up new transitions so gameplay doesn't keep running behind an
+overlay. `flagSlide` interpolates the player from wherever they touched the
+pole down to standing height over `SLIDE_MS`; `finishFlagpole()` (called
+once the slide completes, not the instant the pole is touched) is where
+music stops, fireworks spawn, and the win/lose message is scheduled.
+
+**Music start/stop/restart.** Only call `restartLevel()` (stops+restarts
+music, then calls `resetLevel()`) from a button that represents "start
+fresh" (death's Start Over, the flagpole's Play Again). The mini-game win
+message's continue button calls neither — it resumes play in place at the
+secret pipe, so it must never stop or restart the music.
 
 **Frame-rate independence (`dtScale`).** Physics constants in `physics.js`
 (`PHYS.*`) are tuned as "per 1/60s frame" deltas. Every place that applies
@@ -97,6 +107,21 @@ at the first solid tile in the column, which can be a floating block well
 above the real ground, and misplace the entity up there (this was a real
 bug: a goomba spawned embedded in/against a stair step and read as floating
 next to a wall).
+
+**Enemy patrol movement (`updateEnemy` in `entities.js`).** A goomba's
+authoritative direction/speed live in `e.dir` (±1) and `e.moveSpeed` (always
+positive) - `e.vx` is *derived* fresh from `dir * moveSpeed` every frame,
+never read back as state. This was a real bug fixed the hard way: the
+original code inferred a wall hit by comparing intended vs. actual
+displacement after calling `moveAndCollide`, which had already zeroed
+`e.vx` as a side effect of resolving that same collision. Reversing an
+already-zeroed value (`0 * -1 = 0`) silently did nothing, so if the
+displacement-heuristic ever missed by one frame, that enemy was stuck at
+`vx = 0` forever with no way to recover. `isWallAhead(e, dir)` now checks
+the tile grid directly *before* moving and flips `e.dir`, so movement never
+depends on reading back a value `moveAndCollide` can clobber. Apply the same
+pattern (check-before-move, never re-derive direction from post-collision
+velocity) to any new patrolling entity.
 
 **Sprites (`js/sprites.js`).** Every sprite is hand-authored as an array of
 strings (one char per pixel, mapped through a palette in `PAL`) and baked
