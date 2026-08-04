@@ -1,0 +1,168 @@
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: none; }
+html, body {
+  margin: 0; padding: 0; width: 100%; height: 100%;
+  background: #000; overflow: hidden;
+  font-family: "Courier New", monospace;
+  overscroll-behavior: none;
+}
+
+#game-wrap {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #000;
+}
+
+#game {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #5c94fc;
+  width: 100%;
+  height: 100%;
+  max-height: 100vh;
+  object-fit: contain;
+}
+
+/* ---------- HUD ---------- */
+#hud {
+  position: fixed; top: 0; left: 0; right: 0;
+  padding: 6px 14px 0 14px;
+  display: flex; align-items: center; gap: 18px;
+  color: #fff; font-weight: bold; letter-spacing: 1px;
+  font-size: clamp(10px, 2vw, 16px);
+  text-shadow: 2px 2px 0 #000;
+  pointer-events: none;
+  padding-top: max(6px, env(safe-area-inset-top));
+}
+#hud-coins { color: #ffd400; }
+.hud-mid { flex: 1; text-align: center; }
+.hud-right { display: flex; gap: 6px; }
+
+/* Hide the main-level HUD/D-pad while inside the hidden Beale St scene -
+   only the JUMP button is needed there to stop the reels. */
+body.secret-scene #hud,
+body.secret-scene #lives-hud {
+  display: none;
+}
+/* visibility (not display:none) so the flex layout doesn't reflow and push
+   the JUMP button to the wrong side */
+body.secret-scene #dpad-zone,
+body.secret-scene #btn-run {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#lives-hud {
+  position: fixed;
+  top: max(30px, calc(env(safe-area-inset-top) + 26px));
+  left: 14px;
+  color: #fff; font-size: clamp(9px, 1.6vw, 13px);
+  font-weight: bold; text-shadow: 2px 2px 0 #000;
+  pointer-events: none;
+}
+
+/* ---------- Overlays ---------- */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50;
+  text-align: center;
+  padding: 20px;
+}
+.overlay.hidden { display: none; }
+
+#rotate-overlay { z-index: 100; display: none; }
+@media (orientation: portrait) {
+  #rotate-overlay { display: flex; }
+}
+.rotate-card { max-width: 320px; }
+.rotate-icon { font-size: 48px; animation: spin-hint 1.6s ease-in-out infinite; }
+@keyframes spin-hint {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(90deg); }
+}
+.rotate-card p { font-size: 16px; line-height: 1.4; }
+
+.start-card h1 {
+  font-size: clamp(28px, 6vw, 48px);
+  color: #fbd000;
+  text-shadow: 3px 3px 0 #e52521, 6px 6px 0 #000;
+  margin: 0 0 6px 0;
+  letter-spacing: 2px;
+}
+.start-card .sub { opacity: 0.8; margin: 0 0 26px 0; font-size: 14px; }
+.start-card .hint { opacity: 0.6; font-size: 12px; margin-top: 18px; }
+#start-btn, #message-btn {
+  font-family: inherit;
+  font-size: clamp(16px, 3vw, 22px);
+  font-weight: bold;
+  padding: 14px 28px;
+  background: #e52521;
+  color: #fff;
+  border: 4px solid #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+#start-btn:active, #message-btn:active { transform: scale(0.96); }
+
+.message-card { max-width: 420px; }
+#message-text {
+  font-size: clamp(15px, 2.6vw, 20px);
+  line-height: 1.6;
+  white-space: pre-line;
+  margin-bottom: 24px;
+}
+
+/* ---------- Touch Controls ---------- */
+#controls {
+  position: fixed; inset: 0;
+  display: flex; justify-content: space-between; align-items: flex-end;
+  pointer-events: none;
+  padding: 0 10px max(10px, env(safe-area-inset-bottom)) 10px;
+}
+.touch-zone { pointer-events: auto; }
+
+#dpad-zone {
+  width: 42vw; max-width: 260px;
+  height: 34vh; max-height: 200px;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+#dpad-stick {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  border: 3px solid rgba(255,255,255,0.35);
+  position: relative;
+}
+#dpad-stick::after {
+  content: '';
+  position: absolute; top: 50%; left: 50%;
+  width: 40px; height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.55);
+  transition: transform 0.05s linear;
+}
+#dpad-stick.active::after { background: rgba(255,255,255,0.85); }
+
+#action-zone {
+  display: flex; align-items: flex-end; gap: 14px;
+}
+.ctrl-btn {
+  font-family: inherit; font-weight: bold;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.5);
+  background: rgba(229,37,33,0.55);
+  color: #fff;
+  font-size: 13px;
+  width: 64px; height: 64px;
+}
+.ctrl-btn.big { width: 92px; height: 92px; font-size: 15px; background: rgba(251,208,0,0.55); color: #000; }
+.ctrl-btn:active { background: rgba(255,255,255,0.6); }
+
+@media (min-width: 900px) {
+  #dpad-zone { width: 220px; height: 160px; }
+}

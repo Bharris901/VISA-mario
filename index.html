@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Memphis Quest</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="rotate-overlay" class="overlay">
+    <div class="rotate-card">
+      <div class="rotate-icon">📱</div>
+      <p>Turn your phone sideways to play</p>
+    </div>
+  </div>
+
+  <div id="start-overlay" class="overlay">
+    <div class="start-card">
+      <h1>MEMPHIS QUEST</h1>
+      <p class="sub">a hidden-secret adventure</p>
+      <button id="start-btn">TAP TO START</button>
+      <p class="hint">Use the on-screen controls to move, jump, and explore.</p>
+    </div>
+  </div>
+
+  <div id="game-wrap">
+    <canvas id="game" width="480" height="288"></canvas>
+
+    <div id="hud">
+      <div class="hud-left">MARIO</div>
+      <div id="hud-score" class="hud-num">000000</div>
+      <div id="hud-coins">🪙×<span id="hud-coin-count">00</span></div>
+      <div class="hud-mid">
+        <span id="hud-world">WORLD 1-1</span>
+      </div>
+      <div class="hud-right">
+        <span id="hud-time">TIME</span>
+        <span id="hud-time-num">400</span>
+      </div>
+    </div>
+
+    <div id="lives-hud">MARIO ×<span id="hud-lives">3</span></div>
+
+    <!-- touch controls -->
+    <div id="controls">
+      <div id="dpad-zone" class="touch-zone">
+        <div id="dpad-stick"></div>
+      </div>
+      <div id="action-zone" class="touch-zone">
+        <button id="btn-run" class="ctrl-btn">RUN</button>
+        <button id="btn-jump" class="ctrl-btn big">JUMP</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="message-overlay" class="overlay hidden">
+    <div class="message-card">
+      <p id="message-text"></p>
+      <button id="message-btn">CONTINUE</button>
+    </div>
+  </div>
+
+  <script src="js/sprites.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/level.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/physics.js"></script>
+  <script src="js/secretRoom.js"></script>
+  <script src="js/minigame.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
