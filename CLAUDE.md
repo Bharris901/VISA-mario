@@ -1,0 +1,118 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+A browser-playable recreation of Super Mario Bros. World 1-1, built for a
+one-day IRL scavenger hunt. A secret pipe in the last quarter of the level
+leads to a hidden 8-bit "Beale Street" room with a 3-reel picture-matching
+bonus game; winning it reveals a scavenger-hunt clue. All art (sprites,
+landmarks) and music are original — not traced/sampled from Nintendo's game.
+
+Full gameplay/design rationale (controls, the hidden-clue flow, deployment
+steps) is in `README.md` — read that for "how it plays"; this file is about
+how the code is put together.
+
+## Commands
+
+There is no build step, package manager, linter, or test suite — this is a
+plain static site (HTML/CSS/vanilla JS, no npm dependencies, no framework).
+
+Run it locally:
+```
+python3 -m http.server 8000
+# open http://localhost:8000
+```
+
+There's no committed automated test suite. The practical way to verify a
+change is to load it in a real (or headless) browser and drive it:
+- Manually: open the page, use arrow keys/Space/Shift (desktop) to play.
+- Headless smoke-testing: launch Chromium via Playwright
+  (`executablePath: '/opt/pw-browsers/chromium'` in this environment),
+  click `#start-btn`, then drive `Input`/`game` state directly via
+  `page.evaluate()` (e.g. teleport `game.player.x/y`, force
+  `game.minigame.reels[i].symbol`) rather than waiting out real gameplay —
+  the whole state machine is reachable from `window.game` in dev tools.
+
+Deployment is GitHub Pages serving the branch directly (no CI/build). One
+sharp edge worth knowing: **GitHub Pages project-site URLs are
+case-sensitive** in the repo-name path segment, unlike github.com's own repo
+pages which are not — `https://<user>.github.io/<Exact-Repo-Case>/`.
+
+## Architecture
+
+**No modules, no bundler.** Every file in `js/` is loaded as a plain
+`<script>` tag from `index.html` (in the order listed there) and all of them
+share one global scope — there's no `import`/`export`. Adding a new file
+means adding a `<script>` tag for it. Because nothing but function/const
+*definitions* happen at top level (aside from `level.js` baking the level
+once via `buildLevel()` and `sprites.js` baking sprite canvases once), load
+order mostly doesn't matter for correctness — cross-file globals are only
+read inside function bodies, which run after every script has loaded.
+
+**Rendering & the state machine (`js/main.js`).** A single 480×288 `<canvas>`
+is tile-based (`TILE = 24`px, `ROWS`/`COLS`/`GROUND_ROW` from `level.js`).
+`game.state` drives both `update()` and `render()` as a simple switch:
+`start → playing → pipeEnter → secretRoom → minigame → frozen`, looping back
+to `playing` (via `resetLevel()`) on death or after the secret-pipe payoff.
+`frozen` is used any time a message overlay needs the game paused underneath
+it (win/lose/flagpole messages) — check that state before wiring up new
+transitions so gameplay doesn't keep running behind an overlay.
+
+**Frame-rate independence (`dtScale`).** Physics constants in `physics.js`
+(`PHYS.*`) are tuned as "per 1/60s frame" deltas. Every place that applies
+them (`updatePlayer`/`updateEnemy`/`updateMushroom` in `entities.js`)
+multiplies by `dtScale = dt / FRAME_MS` first. This was a real, previously
+broken invariant (physics used to advance one frame's-worth of motion per
+*rendered* frame, so the game silently ran faster on 90/120Hz phones) — any
+new movement/timer code must scale by `dtScale` (or use real `dt` in ms) to
+stay correct across devices, not add raw per-frame constants.
+
+**Level data (`js/level.js`).** `buildLevel()` procedurally constructs an
+*original* tile layout designed to feel like classic World 1-1 (not copied
+level data) and returns `{ grid, SECRET_PIPE_COL, FLAG_COL }`. Tile
+characters are documented at the top of the file (`'#'` ground, `'?'`
+question block, `'B'` brick, `'T'/'U'` pipe caps, `'g'/'h'` the *secret*
+pipe's caps, `'F'` flagpole, etc.). `main.js` deep-copies the initial grid
+into `ORIGINAL_GRID` at load and calls `resetLevelTiles()` on every level
+reset, so broken bricks/used blocks correctly restore each playthrough.
+
+**Sprites (`js/sprites.js`).** Every sprite is hand-authored as an array of
+strings (one char per pixel, mapped through a palette in `PAL`) and baked
+once into an offscreen canvas via `bakeSprite`/`M()` at native resolution
+(`PX = 1`). Render code scales up at draw time (see `MARIO_DRAW_SCALE` in
+`main.js`) rather than baking at a larger size. **Gotcha already hit once:**
+all frames of the same character (stand/walk1/walk2/jump) must share the
+same row/column count with no dead padding rows — a mismatch reads as the
+character floating or resizing between frames, since draw size/offset is
+derived from each sprite's actual canvas dimensions.
+
+**Secret room + mini-game.** `secretRoom.js` draws the Beale Street backdrop
+(bridge/Pyramid/Overton Park Shell/neon signs) directly with canvas
+primitives — no image assets. `minigame.js` implements the 3-reel matching
+game; `CARD_DEFS` there is the single place to swap in real card images
+(falls back to colored placeholder cards when `img` is unset — see
+`assets/README.md`).
+
+**Audio (`js/audio.js`).** A single `Sfx` IIFE wraps WebAudio: one-shot SFX
+via `tone()`/`slide()`, plus a lookahead-scheduled background music loop
+(`startMusic()`/`stopMusic()`, `toneAt()` scheduling at absolute
+`AudioContext` times to avoid `setTimeout` drift). The `AudioContext` is only
+created/resumed on `unlock()`, called from the start-button tap handler in
+`main.js` — mobile browsers block audio before a user gesture, so don't move
+audio init earlier than that tap.
+
+**Key config knobs a task will usually touch:**
+- `CLUE_MESSAGE`, `NOT_FOUND_MESSAGE`, `FOUND_BUT_FINISHED_MESSAGE`,
+  `ASSIST_MODE_DEATH_THRESHOLD` — top of `main.js`.
+- `CARD_DEFS` — `minigame.js` (mini-game card art/labels).
+- `PHYS.*` — `physics.js` (movement/jump tuning; remember the dtScale note
+  above when changing anything here).
+
+**Design invariant to preserve:** there is no game-over state. Every death
+path funnels through `world.onPlayerDeath(reason)` → `resetLevel()`; it
+always restarts the level rather than ending play. After
+`ASSIST_MODE_DEATH_THRESHOLD` deaths in a session, `game.assistMode` makes
+the player invincible to enemy contact for the rest of the session. Keep
+both behaviors in mind before adding any new failure state.
