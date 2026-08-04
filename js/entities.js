@@ -144,6 +144,7 @@ function shrinkPlayer(p, world) {
     p.y += (28 - 16); // keep feet planted at the same spot as the box shrinks
     resizePlayerBox(p);
     p.hurtInvuln = 120;
+    Sfx.shrink();
   } else {
     world.onPlayerDeath('enemy');
   }

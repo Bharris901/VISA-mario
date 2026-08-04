@@ -131,7 +131,10 @@ const world = {
     game.player.dead = true;
     game.deathCount++;
     if (game.deathCount >= ASSIST_MODE_DEATH_THRESHOLD) game.assistMode = true;
-    Sfx.die();
+    // Background music cuts out and a ~5s "womp womp" plays instead, then
+    // silence until Start Over restarts the music fresh (via restartLevel).
+    Sfx.stopMusic();
+    Sfx.deathJingle();
     game.state = 'frozen';
     setTimeout(() => {
       UI.showMessage('Try again Memphis Mario!', () => restartLevel(), 'START OVER', SPRITES.grimaceFace);

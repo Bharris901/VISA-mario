@@ -143,11 +143,24 @@ const Sfx = (() => {
     stomp() { slide(180, 60, 0.12, 'square', 0.2); },
     bump() { tone(140, 0.08, 'square', 0.18); },
     powerup() { [523,659,784,1047].forEach((f,i)=>tone(f,0.12,'square',0.16,i*0.09)); },
+    // Big -> small: a quick downward "deflate", distinct from die()'s longer/
+    // more severe slide, so a hit that merely shrinks Mario reads differently
+    // from an actual death.
+    shrink() { [880,660,440].forEach((f,i)=>tone(f,0.11,'square',0.16,i*0.06)); slide(300,120,0.2,'triangle',0.12); },
     pipe() { slide(220, 90, 0.4, 'sine', 0.2); },
     // Subtle "nope" for trying to descend a pipe that isn't the secret one -
     // deliberately quiet/short so it reads as a gentle nudge, not a buzzer.
     denied() { tone(180, 0.07, 'square', 0.1); tone(140, 0.09, 'square', 0.09, 0.05); },
     die() { slide(400, 100, 0.6, 'sawtooth', 0.18); },
+    // Classic descending "womp womp womp waaah" - plays over the death
+    // screen (background music is stopped first) so death has a distinct,
+    // ~5s musical sting rather than silence or the upbeat loop continuing.
+    deathJingle() {
+      const notes = [196, 185, 165, 147, 110];
+      const durs  = [0.7, 0.7, 0.7, 0.7, 2.2];
+      let t = 0;
+      notes.forEach((f, i) => { tone(f, durs[i], 'sawtooth', 0.17, t); t += durs[i]; });
+    },
     win() { [523,659,784,1047,1319].forEach((f,i)=>tone(f,0.18,'triangle',0.18,i*0.12)); },
     firework() {
       const base = 700 + Math.random() * 500;

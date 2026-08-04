@@ -55,12 +55,17 @@ doing nothing silently.
 - **Jump buffering** — a jump tapped slightly early still fires the moment
   you land.
 - **No game over, ever** — dying (falling in a pit, an enemy hit while
-  small, or time running out) shows a brief "Try again Memphis Mario!"
-  screen with a Start Over button that restarts the level. There's no fail
-  state that stops play, just a quick pause and a tap to go again.
+  small, or time running out) cuts the background music and plays a ~5s
+  descending "womp womp" sting, then shows a "Try again Memphis Mario!"
+  screen (with an 8-bit X-eyes face) and a Start Over button. Music stays
+  off until Start Over restarts it fresh. There's no fail state that stops
+  play, just a quick pause and a tap to go again.
 - **Assist mode** — after 3 deaths in a session, the player becomes
   invincible to enemy contact for the rest of that session, so nobody can
-  get permanently stuck during the event. This is automatic and silent.
+  get permanently stuck during the event. This is automatic, silent, and
+  intentionally permanent for the session (not a temporary window) - if
+  that threshold or behavior ever needs tuning, it's
+  `ASSIST_MODE_DEATH_THRESHOLD` in `js/main.js`.
 
 ## Power-ups
 

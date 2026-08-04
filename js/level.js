@@ -115,12 +115,13 @@ function buildLevel() {
 
   // --- Final big staircase up to the flagpole ---
   const flagStairTop = stairsUp(208, 8, 1);
-  // Far enough from the stair-top that a running jump off the peak is
-  // needed to land on the pole from above (rather than just strolling into
-  // it), but well within jump range - the flat ground the whole way there
-  // means falling short just means walking the rest, never falling short
-  // into a gap.
-  const flagCol = 228;
+  // Close enough that a single running jump straight off the stair-top peak
+  // (col 215) lands right on the pole - simulated the jump arc to confirm:
+  // a running jump from there covers ~4.5 tiles before touching down, so
+  // this sits just inside that range rather than requiring extra walking
+  // afterward (228 was tried and turned out to be well beyond a single
+  // jump's reach).
+  const flagCol = 219;
   // Shortened on purpose (6 tiles instead of spanning the full screen
   // height) so the ball finial at the top is clearly visible with sky
   // above it, rather than running off the top of the view.
