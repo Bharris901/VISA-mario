@@ -1,18 +1,20 @@
 # Memphis Mario
 
 A browser-playable recreation of World 1-1 with a hidden custom twist: a
-secret green pipe near the end of the level leads to an 8-bit Beale Street
-scene and a picture-matching bonus game. Winning it reveals a scavenger-hunt
-clue. No app, no install — just a URL.
+secret green pipe near the end of the level leads to a Beale Street scene
+(a real Memphis skyline photo backdrop) with a 20-card memory matching
+game — 10 pairs of Memphis-themed icons. Winning it pops a treasure chest
+open with a scavenger-hunt clue. No app, no install — just a URL.
 
-All art is original pixel art drawn in code (not traced from any
-copyrighted source), tuned to feel close to the classic game.
+All character/card art is original pixel/vector art drawn in code (not
+traced from any copyrighted source), tuned to feel close to the classic
+game; the Beale Street backdrop is a real photo-style illustration.
 
-## Before the event: two things to fill in
+## Before the event: one thing to fill in
 
-1. **The clue text** — edit `CLUE_MESSAGE` at the top of `js/main.js`.
-2. **The mini-game card images** — see `assets/README.md`. Until you add
-   real images, placeholder colored cards are used automatically.
+- **The clue text** — edit `CLUE_MESSAGE` at the top of `js/main.js`. It's
+  shown as "Congrats Memphis Mario!" followed by whatever text you put
+  there, inside the treasure chest's message screen.
 
 ## Running it locally
 
@@ -76,9 +78,20 @@ since dying never actually ends play).
 - The secret pipe is a normal-looking green pipe in roughly the last
   quarter of the level. Press "down" while standing on top of it to enter
   (no visual hint marks it as special, by design).
-- Inside, the reels keep spinning; each tap of JUMP stops the next reel.
-  Match all three to win. A miss just resets the reels — unlimited
-  attempts, no penalty.
+- Mario falls in from the top of the screen and lands on the left, in
+  front of the Beale Street skyline. A speech bubble asks for help
+  matching the cards, then a 20-card grid (10 pairs of Memphis icons —
+  University of Memphis, Grizzlies, Redbirds, Elvis, the Pyramid, the
+  Peabody duck, a Beale Street guitar, the M bridge, the Lorraine Motel
+  sign, St. Jude) fades in. Tap any two cards to flip them; a match makes
+  them stack together with a little celebration burst, a mismatch flips
+  both back over. Keep going — unlimited attempts, no penalty — until all
+  10 pairs are found.
+- Finding the last pair bursts a treasure chest out from behind the cards,
+  scattering them, and the chest lands on the ground on the right. The
+  d-pad reappears just for this moment so the player can walk Mario over
+  to it. Reaching the chest opens it; a page grows out of it to fill the
+  screen and becomes the clue message.
 - On winning, the clue message is shown, then play resumes right back at
   the pipe so the player can continue to the flagpole.
 - Reaching the flagpole **without ever finding/winning the secret game**
@@ -103,8 +116,8 @@ js/input.js          keyboard + touch input
 js/level.js          tile map layout + entity spawn list
 js/physics.js        movement tuning + tile collision
 js/entities.js       player/enemy/mushroom update logic
-js/secretRoom.js     Beale Street backdrop rendering
-js/minigame.js       the 3-reel picture-matching bonus game
+js/secretRoom.js     Beale Street photo backdrop + procedural big-Mario/speech-bubble rendering
+js/minigame.js       the 20-card memory matching game + treasure chest sequence
 js/ui.js             HUD + message overlay helpers
 js/main.js           state machine, camera, render loop, boot
 ```

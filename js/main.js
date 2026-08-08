@@ -4,13 +4,16 @@
 
 // !!! Put the real scavenger-hunt clue text here before the event. !!!
 const CLUE_MESSAGE =
-  "🎉 YOU FOUND IT!\n\n[PLACEHOLDER — insert real scavenger-hunt clue text here]";
+  "Congrats Memphis Mario!\n\n[PLACEHOLDER — insert real scavenger-hunt clue text here]";
+
+const BEALE_SPEECH_TEXT = "I need your help to match the cards in order to reveal the next clue!";
 
 const NOT_FOUND_MESSAGE = "You made it to the end! But…\nYou didn't find the clue :(\nStart over to try again!";
 const FOUND_BUT_FINISHED_MESSAGE =
   "🏁 Level complete!\nYou already found the hidden clue — good luck with the rest of the hunt!";
 
 const MARIO_DRAW_SCALE = 1.5; // native sprite px -> on-screen px
+const BEALE_BOX_SCALE = 2.2;  // treasure-box draw scale in the Beale scene
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -39,10 +42,10 @@ const game = {
   clueFound: false,
   deathCount: 0,
   pipeAnimTimer: 0,
-  secretRoomTimer: 0,
   flagSlideTimer: 0,
   flagSlideStartY: 0,
-  minigame: null,
+  beale: null,  // Beale scene sub-state: fall/land/bubble intro + walk-to-box
+  memory: null, // the 20-card memory game state (see minigame.js)
   paused: false,
 };
 
@@ -58,6 +61,8 @@ function resetLevel() {
   game.timeLeft = 400;
   game.clueFound = false;
   game.cameraX = 0;
+  game.beale = null;
+  game.memory = null;
   game.state = 'playing';
 }
 
@@ -410,6 +415,10 @@ function render(dt) {
 
   const inSecretScene = game.state === 'secretRoom' || game.state === 'minigame';
   document.body.classList.toggle('secret-scene', inSecretScene);
+  // The D-pad is normally hidden for the whole Beale scene (card matching is
+  // tap-only) but re-enabled during the brief player-controlled "walk to the
+  // treasure box" sub-phase - see the body.beale-walk rule in style.css.
+  document.body.classList.toggle('beale-walk', inSecretScene && !!game.beale && game.beale.phase === 'walk');
 
   if (inSecretScene) {
     renderSecretScene(dt);
@@ -442,54 +451,71 @@ function drawPipeEnterAnim(camX) {
 }
 
 // --- Secret room / minigame rendering ---
+// Sub-phases (game.beale.phase), all drawn over the same photo backdrop:
+//   'fall'   - Mario drops in from the top of the screen (secretRoom state)
+//   'bubble' - he's landed on the left and a speech bubble reads his line
+//   'grid'   - the 20-card memory board is live (tap to flip)             \ minigame
+//   'burst'  - winning pair #10 pops the treasure chest, cards scatter    /  state
+//   'walk'   - player walks Mario over to the landed chest
+//   'open'   - chest opens, a white "page" grows to fill the screen, then
+//              hands off to the DOM message overlay with the clue text
 function renderSecretScene(dt) {
-  drawSecretRoom(ctx, VIEW_W, VIEW_H, performance.now());
+  drawBealeBackground(ctx, VIEW_W, VIEW_H);
+  const b = game.beale;
+  if (!b) return;
+  const groundY = b.groundY;
 
-  if (game.state === 'secretRoom') {
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(0, VIEW_H - 40, VIEW_W, 40);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px "Courier New", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('BEALE STREET...', VIEW_W / 2, VIEW_H - 16);
+  if (b.phase === 'fall' || b.phase === 'bubble') {
+    drawBealeMario(ctx, b.marioFootX, b.marioFootY, BEALE_MARIO_HEIGHT, b.phase === 'fall' ? 'fall' : 'stand', 1);
+    if (b.phase === 'bubble') {
+      drawSpeechBubble(ctx, b.marioFootX, b.marioFootY - BEALE_MARIO_HEIGHT, BEALE_SPEECH_TEXT, 280);
+    }
     return;
   }
 
-  // minigame overlay: kiosk + 3 reels
-  const mg = game.minigame;
-  const boardW = 300, boardH = 130;
-  const bx = (VIEW_W - boardW) / 2, by = (VIEW_H - boardH) / 2 - 10;
+  if (b.phase === 'grid') {
+    drawMemoryGrid(ctx, game.memory);
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, VIEW_H - 26, VIEW_W, 26);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Tap cards to find all 10 matching pairs!', VIEW_W / 2, VIEW_H - 9);
+    return;
+  }
 
-  ctx.fillStyle = 'rgba(20,10,30,0.88)';
-  roundRect(ctx, bx, by, boardW, boardH, 10);
-  ctx.fill();
-  ctx.strokeStyle = '#ffd15f';
-  ctx.lineWidth = 3;
-  roundRect(ctx, bx, by, boardW, boardH, 10);
-  ctx.stroke();
+  if (b.phase === 'burst') {
+    drawMemoryGrid(ctx, game.memory);
+    drawTreasureBox(ctx, game.memory.boxX, game.memory.boxY, BEALE_BOX_SCALE, 0);
+    return;
+  }
 
-  ctx.fillStyle = '#ffd15f';
-  ctx.font = 'bold 13px "Courier New", monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('MATCH ALL THREE!', VIEW_W / 2, by + 20);
+  // 'walk' / 'open'
+  drawTreasureBox(ctx, game.memory.boxX, groundY, BEALE_BOX_SCALE, b.phase === 'open' ? b.openT : 0);
+  const pose = b.phase === 'walk'
+    ? (b.walking ? (Math.floor((b.walkAnimTimer || 0) / 150) % 2 === 0 ? 'walk1' : 'walk2') : 'stand')
+    : 'stand';
+  drawBealeMario(ctx, b.marioFootX, groundY, BEALE_MARIO_HEIGHT, pose, b.marioFacing || 1);
 
-  const cardSize = 64;
-  const gap = 14;
-  const totalW = cardSize * 3 + gap * 2;
-  const startX = VIEW_W / 2 - totalW / 2;
-  mg.reels.forEach((r, i) => {
-    const cx = startX + i * (cardSize + gap);
-    const cy = by + 32;
-    drawCard(ctx, CARD_DEFS[r.symbol], cx, cy, cardSize);
-  });
-
-  ctx.fillStyle = '#fff';
-  ctx.font = '12px "Courier New", monospace';
-  if (mg.state === 'lost') {
-    ctx.fillStyle = '#ff8f8f';
-    ctx.fillText('Not quite — try again!', VIEW_W / 2, by + boardH - 12);
-  } else {
-    ctx.fillText('Tap JUMP to stop each reel', VIEW_W / 2, by + boardH - 12);
+  if (b.phase === 'walk') {
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, VIEW_H - 26, VIEW_W, 26);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Walk to the treasure box!', VIEW_W / 2, VIEW_H - 9);
+  } else if (b.phase === 'open' && b.openT > 0) {
+    // A white "page" bursts out of the chest and grows to fill the screen,
+    // handing off to the real (readable, DOM) congrats+clue message once
+    // it's fully grown - see updateBealeGame's 'open' branch.
+    const t = b.openT;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, t * 1.4);
+    ctx.fillStyle = '#fff';
+    const w = VIEW_W * t, h = VIEW_H * t;
+    roundRect(ctx, game.memory.boxX - w / 2, groundY - 30 - h / 2, w, h, 12);
+    ctx.fill();
+    ctx.restore();
   }
 }
 
@@ -501,6 +527,102 @@ function roundRect(c, x, y, w, h, r) {
   c.arcTo(x, y + h, x, y, r);
   c.arcTo(x, y, x + w, y, r);
   c.closePath();
+}
+
+// --- Beale scene sub-state updates ---
+function updateBealeIntro(dt) {
+  const b = game.beale;
+  const dtScale = dt / FRAME_MS;
+  if (b.phase === 'fall') {
+    b.marioVy += 0.5 * dtScale;
+    b.marioFootY += b.marioVy * dtScale;
+    if (b.marioFootY >= b.groundY) {
+      b.marioFootY = b.groundY;
+      b.marioVy = 0;
+      b.phase = 'bubble';
+      b.phaseTimer = 0;
+      Sfx.thud();
+    }
+  } else if (b.phase === 'bubble') {
+    b.phaseTimer += dt;
+    if (b.phaseTimer > 3200) {
+      game.state = 'minigame';
+      game.memory = createMemoryGame(VIEW_W, VIEW_H);
+      b.phase = 'grid';
+    }
+  }
+}
+
+function updateBealeGame(dt) {
+  const b = game.beale;
+  const mg = game.memory;
+  if (b.phase === 'grid') {
+    updateMemoryGame(mg, dt);
+  } else if (b.phase === 'burst') {
+    const landed = updateTreasureBurst(mg, dt, b.groundY);
+    if (landed) {
+      b.phase = 'walk';
+      b.marioFootX = VIEW_W * 0.16;
+      b.marioFootY = b.groundY;
+      b.marioFacing = 1;
+      b.walking = false;
+      b.walkAnimTimer = 0;
+    }
+  } else if (b.phase === 'walk') {
+    const speed = 2.6 * (dt / FRAME_MS);
+    if (Input.left) { b.marioFootX -= speed; b.marioFacing = -1; b.walking = true; }
+    else if (Input.right) { b.marioFootX += speed; b.marioFacing = 1; b.walking = true; }
+    else { b.walking = false; }
+    b.marioFootX = Math.max(18, Math.min(VIEW_W - 18, b.marioFootX));
+    b.walkAnimTimer += dt;
+    if (Math.abs(b.marioFootX - mg.boxX) < 26) {
+      b.phase = 'open';
+      b.openT = 0;
+      Sfx.boxOpen();
+    }
+  } else if (b.phase === 'open') {
+    b.openT = Math.min(1, b.openT + dt / 650);
+    if (b.openT >= 1 && !b.messageShown) {
+      b.messageShown = true;
+      game.clueFound = true;
+      game.state = 'frozen';
+      UI.showMessage(CLUE_MESSAGE, () => {
+        // send Mario back up the pipe to keep playing toward the flagpole
+        game.player.inPipe = false;
+        game.player.x = (SECRET_PIPE_COL) * TILE;
+        game.player.y = (GROUND_ROW - 4) * TILE;
+        game.player.vx = 0; game.player.vy = 0;
+        game.beale = null;
+        game.memory = null;
+        game.state = 'playing';
+      }, 'AWESOME!');
+    }
+  }
+}
+
+// Card taps are handled outside the update() tick (directly off the DOM
+// event) so a flip registers the instant a finger lands, same as every
+// other touch control in this game.
+function handleBealeCanvasTap(clientX, clientY) {
+  if (!game.beale || game.beale.phase !== 'grid' || !game.memory) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (clientX - rect.left) * (VIEW_W / rect.width);
+  const y = (clientY - rect.top) * (VIEW_H / rect.height);
+  const won = handleCardTap(game.memory, x, y);
+  if (won) {
+    game.beale.phase = 'burst';
+    startTreasureBurst(game.memory, VIEW_W, VIEW_H);
+  }
+}
+
+function initBealeCardInput() {
+  canvas.addEventListener('touchstart', (e) => {
+    if (!game.beale || game.beale.phase !== 'grid') return;
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    handleBealeCanvasTap(t.clientX, t.clientY);
+  }, { passive: false });
+  canvas.addEventListener('click', (e) => handleBealeCanvasTap(e.clientX, e.clientY));
 }
 
 // --- Update ---
@@ -529,7 +651,20 @@ function update(dt) {
     game.pipeAnimTimer += dt;
     if (game.pipeAnimTimer > 700) {
       game.state = 'secretRoom';
-      game.secretRoomTimer = 0;
+      game.beale = {
+        phase: 'fall',
+        marioFootX: VIEW_W * 0.16,
+        marioFootY: -20,
+        marioVy: 0,
+        marioFacing: 1,
+        groundY: bealeGroundY(VIEW_H),
+        phaseTimer: 0,
+        walking: false,
+        walkAnimTimer: 0,
+        openT: 0,
+        messageShown: false,
+      };
+      game.memory = null;
     }
   }
   else if (game.state === 'flagSlide') {
@@ -545,29 +680,10 @@ function update(dt) {
     }
   }
   else if (game.state === 'secretRoom') {
-    game.secretRoomTimer += dt;
-    if (game.secretRoomTimer > 1600) {
-      game.state = 'minigame';
-      game.minigame = createMinigame();
-    }
+    updateBealeIntro(dt);
   }
   else if (game.state === 'minigame') {
-    updateMinigame(game.minigame, dt, Input);
-    if (Input.jumpPressed) pressMinigameButton(game.minigame);
-    if (game.minigame.state === 'won') {
-      game.clueFound = true;
-      game.state = 'frozen';
-      setTimeout(() => {
-        UI.showMessage(CLUE_MESSAGE, () => {
-          // send Mario back up the pipe to keep playing toward the flagpole
-          game.player.inPipe = false;
-          game.player.x = (SECRET_PIPE_COL) * TILE;
-          game.player.y = (GROUND_ROW - 4) * TILE;
-          game.player.vx = 0; game.player.vy = 0;
-          game.state = 'playing';
-        }, 'AWESOME!');
-      }, 600);
-    }
+    updateBealeGame(dt);
   }
 
   Input.update();
@@ -597,6 +713,8 @@ window.addEventListener('resize', fitCanvas);
 function boot() {
   UI.init();
   initInput();
+  initBealeCardInput();
+  loadBealeAssets();
   resetLevel();
   game.state = 'start'; // wait for tap
   fitCanvas();

@@ -43,18 +43,24 @@ html, body {
 .hud-mid { flex: 1; text-align: center; }
 .hud-right { display: flex; gap: 6px; }
 
-/* Hide the main-level HUD/D-pad while inside the hidden Beale St scene -
-   only the JUMP button is needed there to stop the reels. */
+/* Hide the main-level HUD/D-pad/JUMP while inside the hidden Beale St scene -
+   card matching is direct-tap, not a control-button interaction. */
 body.secret-scene #hud,
 body.secret-scene #lives-hud {
   display: none;
 }
-/* visibility (not display:none) so the flex layout doesn't reflow and push
-   the JUMP button to the wrong side */
+/* visibility (not display:none) so the flex layout doesn't reflow */
 body.secret-scene #dpad-zone,
-body.secret-scene #btn-descend {
+body.secret-scene #btn-descend,
+body.secret-scene #btn-jump {
   visibility: hidden;
   pointer-events: none;
+}
+/* ...except the D-pad is re-enabled during the brief "walk Mario to the
+   treasure box" sub-phase, which needs left/right movement. */
+body.secret-scene.beale-walk #dpad-zone {
+  visibility: visible;
+  pointer-events: auto;
 }
 
 #lives-hud {

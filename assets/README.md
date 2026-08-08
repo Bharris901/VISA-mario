@@ -1,18 +1,18 @@
-# Mini-game card images
+# Assets
 
-Drop the final Beale Street mini-game images in this folder (e.g.
-`card-duck.png`, `card-guitar.png`, `card-bbq.png`, `card-note.png` — any
-names you like) and point to them from `js/minigame.js`:
+## `beale-street-bg.png`
 
-```js
-const CARD_DEFS = [
-  { id: 'a', label: 'DUCK', color: '#e5c14a', img: 'assets/card-duck.png' },
-  { id: 'b', label: 'GTR',  color: '#c65b3a', img: 'assets/card-guitar.png' },
-  { id: 'c', label: 'BBQ',  color: '#a9432e', img: 'assets/card-bbq.png' },
-  { id: 'd', label: 'NOTE', color: '#3f7d5c', img: 'assets/card-note.png' },
-];
-```
+The Beale Street scene's photo backdrop (Hernando de Soto Bridge, the
+Pyramid, downtown skyline at sunset, the BEALE ST neon sign, Overton Park
+Shell, a foreground stone balustrade/plaza). Drawn with a "cover" fit in
+`drawBealeBackground()` (`js/secretRoom.js`) — it's cropped to fill the
+canvas regardless of aspect ratio, never letterboxed/stretched.
 
-Square images work best (they're drawn at 64x64). Until `img` is set for a
-card, it renders as a colored placeholder square with its label instead —
-safe to leave some placeholders and swap others in as they're ready.
+## Memory-game card icons
+
+The 20-card matching game's 10 icon pairs (University of Memphis, Grizzlies,
+Redbirds, Elvis, the Pyramid, the Peabody duck, a Beale St. guitar, the M
+bridge, the Lorraine Motel sign, St. Jude) are drawn procedurally with
+canvas primitives in `drawCardIcon()` (`js/minigame.js`) — there are no
+image files to drop in. To swap an icon's look, edit its `case` in that
+function's switch statement.

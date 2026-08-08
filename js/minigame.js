@@ -1,107 +1,339 @@
 // ---------------------------------------------------------------------------
-// The Beale Street "picture roulette" bonus game - a 3-reel matching game
-// modeled on the reference screenshot. Cards are placeholders for now;
-// swap CARD_DEFS below with real image paths whenever they're ready (see
-// README.md "Swapping in the real mini-game images").
+// The Beale Street bonus game: a classic 20-card memory match (10 pairs).
+// Cards are drawn procedurally (not baked pixel sprites) so icon art stays
+// crisp at whatever card size the layout needs. Winning triggers a treasure
+// chest sequence (js/main.js owns that state machine; this file owns the
+// card grid + the physical burst/scatter simulation).
 // ---------------------------------------------------------------------------
 
-const CARD_DEFS = [
-  { id: 'a', label: 'DUCK', color: '#e5c14a' },
-  { id: 'b', label: 'GTR',  color: '#c65b3a' },
-  { id: 'c', label: 'BBQ',  color: '#a9432e' },
-  { id: 'd', label: 'NOTE', color: '#3f7d5c' },
-];
-// To use real images instead of placeholders, set e.g.
-//   CARD_DEFS[0].img = 'assets/card-duck.png'
-// and loadCardImages() below will use it automatically once loaded.
+const CARD_ICONS = ['memphis', 'grizzlies', 'redbirds', 'elvis', 'pyramid', 'duck', 'guitar', 'bridge', 'lorraine', 'stjude'];
 
-const cardImageCache = {};
-function loadCardImages() {
-  CARD_DEFS.forEach(def => {
-    if (def.img && !cardImageCache[def.id]) {
-      const im = new Image();
-      im.src = def.img;
-      cardImageCache[def.id] = im;
-    }
-  });
-}
-loadCardImages();
-
-function drawCard(ctx, def, x, y, size) {
-  ctx.save();
-  ctx.translate(x, y);
-  const cached = cardImageCache[def.id];
-  if (cached && cached.complete && cached.naturalWidth > 0) {
-    ctx.drawImage(cached, 0, 0, size, size);
-  } else {
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, size, size);
-    ctx.fillStyle = def.color;
-    ctx.fillRect(4, 4, size - 8, size - 8);
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${Math.floor(size * 0.18)}px "Courier New", monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(def.label, size / 2, size / 2);
+function shuffleDeck(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(1.5, 1.5, size - 3, size - 3);
+  return arr;
+}
+
+// Original pixel-art interpretations of each Memphis icon (not traced from
+// any source image - hand-drawn from general knowledge of each mark) drawn
+// with canvas primitives into a size x size box centered at (cx, cy).
+function drawCardIcon(ctx, id, cx, cy, size) {
+  const s = size / 40;
+  const rr = (x, y, w, h, r) => roundRect(ctx, x, y, w, h, r);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(s, s);
+  ctx.lineWidth = 1;
+  switch (id) {
+    case 'memphis': { // University of Memphis - tiger paw
+      ctx.fillStyle = '#003087';
+      ctx.beginPath(); ctx.ellipse(0, 6, 11, 9, 0, 0, Math.PI * 2); ctx.fill();
+      const toe = (tx, ty) => { ctx.beginPath(); ctx.ellipse(tx, ty, 5, 6, 0, 0, Math.PI * 2); ctx.fill(); };
+      toe(-11, -8); toe(-4, -14); toe(4, -14); toe(11, -8);
+      ctx.fillStyle = '#8a8d8f';
+      ctx.font = 'bold 12px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('M', 0, 10);
+      break;
+    }
+    case 'grizzlies': { // bear head
+      ctx.fillStyle = '#12173d';
+      ctx.beginPath(); ctx.arc(0, 2, 13, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-11, -9, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(11, -9, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fdb927';
+      ctx.beginPath(); ctx.arc(-11, -9, 2.4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(11, -9, 2.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#6d7079';
+      ctx.beginPath(); ctx.ellipse(0, 8, 7, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(0, 8, 1.6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-6, -2, 1.6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(6, -2, 1.6, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+    case 'redbirds': { // cardinal
+      ctx.fillStyle = '#c8102e';
+      ctx.beginPath(); ctx.ellipse(0, 5, 10, 8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(9, -6, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(8, -12); ctx.lineTo(5, -18); ctx.lineTo(11, -14); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8f0c22';
+      ctx.beginPath(); ctx.ellipse(-4, 6, 6, 4, 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#e8a33d';
+      ctx.beginPath(); ctx.moveTo(14, -6); ctx.lineTo(19, -4); ctx.lineTo(14, -3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(10, -7, 1, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+    case 'elvis': { // pompadour + sideburns + sunglasses
+      ctx.fillStyle = '#f0c8a0';
+      ctx.beginPath(); ctx.arc(0, 2, 11, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath(); ctx.arc(0, -6, 11, Math.PI, 0); ctx.fill();
+      rr(-13, -8, 4, 12, 2); ctx.fill();
+      rr(9, -8, 4, 12, 2); ctx.fill();
+      ctx.fillStyle = '#000';
+      rr(-8, -1, 6, 2.5, 1); ctx.fill();
+      rr(2, -1, 6, 2.5, 1); ctx.fill();
+      rr(-2, -0.5, 4, 1.2, 0.5); ctx.fill();
+      ctx.fillStyle = '#c8102e';
+      rr(-4, 8, 8, 3, 1); ctx.fill();
+      break;
+    }
+    case 'pyramid': {
+      ctx.fillStyle = '#b9c4cc';
+      ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(15, 12); ctx.lineTo(-15, 12); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8fa0ab';
+      ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(15, 12); ctx.lineTo(0, 12); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(-15 + i * 7.5, 12); ctx.stroke(); }
+      break;
+    }
+    case 'duck': { // Peabody Hotel mallard
+      ctx.fillStyle = '#c97a3d';
+      ctx.beginPath(); ctx.ellipse(0, 6, 12, 8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2e6b3e';
+      ctx.beginPath(); ctx.arc(9, -4, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      rr(3, 0, 10, 2.5, 1); ctx.fill();
+      ctx.fillStyle = '#e8a33d';
+      ctx.beginPath(); ctx.moveTo(15, -4); ctx.lineTo(21, -3); ctx.lineTo(15, -1); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(10, -6, 1, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+    case 'guitar': {
+      ctx.fillStyle = '#8a4a1c';
+      ctx.beginPath(); ctx.ellipse(0, 10, 9, 7, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, -3, 6, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3a2010';
+      ctx.beginPath(); ctx.arc(0, 9, 3, 0, Math.PI * 2); ctx.fill();
+      rr(-1.5, -18, 3, 16, 1); ctx.fill();
+      ctx.strokeStyle = '#e8c88a'; ctx.lineWidth = 0.6;
+      for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(-2.5 + i * 1.7, -17); ctx.lineTo(-2.5 + i * 1.7, 14); ctx.stroke(); }
+      break;
+    }
+    case 'bridge': { // Hernando de Soto (M) bridge
+      ctx.strokeStyle = '#c7ccd1'; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.moveTo(-17, 10); ctx.lineTo(17, 10); ctx.stroke();
+      [-9, 9].forEach(bx => {
+        ctx.beginPath();
+        ctx.moveTo(bx - 8, 10); ctx.quadraticCurveTo(bx, -12, bx + 8, 10); ctx.stroke();
+      });
+      break;
+    }
+    case 'lorraine': {
+      ctx.fillStyle = '#fff'; rr(-15, -14, 30, 26, 2); ctx.fill();
+      ctx.strokeStyle = '#c8102e'; ctx.lineWidth = 2; roundRect(ctx, -15, -14, 30, 26, 2); ctx.stroke();
+      ctx.fillStyle = '#1c3f94'; rr(-15, -14, 30, 6, 2); ctx.fill();
+      ctx.fillStyle = '#c8102e';
+      ctx.font = 'bold 6px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('LORRAINE', 0, -1);
+      ctx.fillText('MOTEL', 0, 8);
+      ctx.fillStyle = '#ffd400';
+      [[-11, -16], [11, -16]].forEach(([sx, sy]) => { ctx.beginPath(); ctx.arc(sx, sy, 1.4, 0, Math.PI * 2); ctx.fill(); });
+      break;
+    }
+    case 'stjude': {
+      ctx.fillStyle = '#c8102e';
+      ctx.beginPath();
+      ctx.moveTo(0, -14); ctx.lineTo(4, -4); ctx.lineTo(14, 0); ctx.lineTo(4, 4);
+      ctx.lineTo(0, 14); ctx.lineTo(-4, 4); ctx.lineTo(-14, 0); ctx.lineTo(-4, -4);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 5px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('ST JUDE', 0, 19);
+      break;
+    }
+  }
   ctx.restore();
 }
 
-function createMinigame() {
+function drawCardBack(ctx, x, y, w, h) {
+  ctx.fillStyle = '#4b1f7a';
+  roundRect(ctx, x, y, w, h, 5); ctx.fill();
+  ctx.strokeStyle = '#2c1050'; ctx.lineWidth = 2;
+  roundRect(ctx, x, y, w, h, 5); ctx.stroke();
+  ctx.fillStyle = '#c9a6ff';
+  ctx.font = `bold ${Math.floor(h * 0.5)}px "Courier New", monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('M', x + w / 2, y + h / 2 + 1);
+  ctx.textBaseline = 'alphabetic';
+}
+
+function drawCardFace(ctx, x, y, w, h, iconId) {
+  ctx.fillStyle = '#fff';
+  roundRect(ctx, x, y, w, h, 5); ctx.fill();
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+  roundRect(ctx, x, y, w, h, 5); ctx.stroke();
+  drawCardIcon(ctx, iconId, x + w / 2, y + h / 2, Math.min(w, h) * 0.82);
+}
+
+function createMemoryGame(viewW, viewH) {
+  const deck = shuffleDeck([...CARD_ICONS, ...CARD_ICONS]);
+  const cols = 5, rows = 4;
+  const gap = 6;
+  const cardW = 58, cardH = 44;
+  const gridW = cols * cardW + (cols - 1) * gap;
+  const gridH = rows * cardH + (rows - 1) * gap;
+  const startX = (viewW - gridW) / 2;
+  const startY = (viewH - gridH) / 2 + 6;
+  const cards = deck.map((icon, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    return {
+      icon, matched: false, flipped: false, flipT: 0,
+      x: startX + col * (cardW + gap), y: startY + row * (cardH + gap),
+      w: cardW, h: cardH,
+      vx: 0, vy: 0, rot: 0, vrot: 0,
+    };
+  });
   return {
-    reels: [0, 1, 2].map(() => ({ spinning: true, spinSpeed: 0.35 + Math.random() * 0.15, offset: Math.random() * CARD_DEFS.length, symbol: 0 })),
-    stopIndex: 0, // which reel stops next on button press
-    resultTimer: 0,
-    state: 'spinning', // spinning | won | lost
-    won: false,
-    attempts: 0,
+    cards, cardW, cardH,
+    flippedIndices: [], mismatchTimer: 0, matchesFound: 0,
+    boxX: 0, boxY: 0, boxVx: 0, boxVy: 0, boxLanded: false, boxTargetX: viewW * 0.82,
   };
 }
 
-function resetMinigameSpin(mg) {
-  mg.reels.forEach(r => { r.spinning = true; r.spinSpeed = 0.35 + Math.random() * 0.15; });
-  mg.stopIndex = 0;
-  mg.state = 'spinning';
+// Returns true if all 10 pairs are now found (caller advances the scene).
+function handleCardTap(mg, x, y) {
+  if (mg.mismatchTimer > 0 || mg.flippedIndices.length >= 2) return false;
+  for (let i = 0; i < mg.cards.length; i++) {
+    const c = mg.cards[i];
+    if (c.matched || c.flipped) continue;
+    if (x < c.x || x > c.x + c.w || y < c.y || y > c.y + c.h) continue;
+
+    c.flipped = true;
+    mg.flippedIndices.push(i);
+    Sfx.cardFlip();
+    if (mg.flippedIndices.length === 2) {
+      const [ia, ib] = mg.flippedIndices;
+      if (mg.cards[ia].icon === mg.cards[ib].icon) {
+        mg.cards[ia].matched = true; mg.cards[ib].matched = true;
+        mg.matchesFound++;
+        mg.flippedIndices = [];
+        Sfx.cardMatch();
+        const cx = (mg.cards[ia].x + mg.cards[ia].w / 2 + mg.cards[ib].x + mg.cards[ib].w / 2) / 2;
+        const cy = (mg.cards[ia].y + mg.cards[ib].y) / 2 + mg.cardH / 2;
+        for (let p = 0; p < 10; p++) {
+          const angle = Math.random() * Math.PI * 2;
+          game.particles.push({
+            x: cx, y: cy, type: 'firework',
+            vx: Math.cos(angle) * (0.8 + Math.random()), vy: Math.sin(angle) * (0.8 + Math.random()) - 1,
+            life: 450 + Math.random() * 200, maxLife: 650,
+            color: ['#ffe15f', '#c9a6ff', '#5fff8f'][p % 3],
+          });
+        }
+        // stack: the second card slides onto the first's spot
+        mg.cards[ib]._stackTargetX = mg.cards[ia].x;
+        mg.cards[ib]._stackTargetY = mg.cards[ia].y + 2;
+      } else {
+        mg.mismatchTimer = 700;
+        Sfx.cardMiss();
+      }
+    }
+    return mg.matchesFound >= 10;
+  }
+  return false;
 }
 
-function updateMinigame(mg, dt, input) {
-  mg.reels.forEach(r => {
-    if (r.spinning) {
-      r.offset += r.spinSpeed * (dt / 16.67);
-      r.symbol = Math.floor(r.offset) % CARD_DEFS.length;
+function updateMemoryGame(mg, dt) {
+  if (mg.mismatchTimer > 0) {
+    mg.mismatchTimer -= dt;
+    if (mg.mismatchTimer <= 0) {
+      mg.flippedIndices.forEach(i => { mg.cards[i].flipped = false; });
+      mg.flippedIndices = [];
+    }
+  }
+  mg.cards.forEach(c => {
+    const target = (c.flipped || c.matched) ? 1 : 0;
+    c.flipT += (target - c.flipT) * Math.min(1, dt / 90);
+    if (c._stackTargetX !== undefined) {
+      c.x += (c._stackTargetX - c.x) * Math.min(1, dt / 120);
+      c.y += (c._stackTargetY - c.y) * Math.min(1, dt / 120);
     }
   });
-
-  if (mg.state === 'lost') {
-    mg.resultTimer -= dt;
-    if (mg.resultTimer <= 0) resetMinigameSpin(mg);
-  }
 }
 
-// Returns true if the button press was consumed (caller should not fall through)
-function pressMinigameButton(mg) {
-  if (mg.state !== 'spinning') return;
-  const reel = mg.reels[mg.stopIndex];
-  if (!reel || !reel.spinning) return;
-  reel.spinning = false;
-  Sfx.reelStop();
-  mg.stopIndex++;
+function startTreasureBurst(mg, viewW, viewH) {
+  mg.cards.forEach(c => {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 3;
+    c.vx = Math.cos(angle) * speed;
+    c.vy = Math.sin(angle) * speed - 2;
+    c.vrot = (Math.random() - 0.5) * 0.3;
+  });
+  mg.boxX = viewW * 0.5; mg.boxY = viewH * 0.32;
+  mg.boxVx = 1.7; mg.boxVy = -3.2;
+  mg.boxLanded = false;
+  Sfx.treasureBurst();
+}
 
-  if (mg.stopIndex >= mg.reels.length) {
-    mg.attempts++;
-    const symbols = mg.reels.map(r => r.symbol);
-    const allMatch = symbols.every(s => s === symbols[0]);
-    if (allMatch) {
-      mg.state = 'won';
-      mg.won = true;
-      Sfx.win();
-    } else {
-      mg.state = 'lost';
-      mg.resultTimer = 1500;
-      Sfx.fail();
+function updateTreasureBurst(mg, dt, groundY) {
+  const dtScale = dt / 16.67;
+  mg.cards.forEach(c => {
+    c.x += c.vx * dtScale; c.y += c.vy * dtScale; c.vy += 0.16 * dtScale;
+    c.rot = (c.rot || 0) + c.vrot * dtScale;
+  });
+  if (!mg.boxLanded) {
+    mg.boxVy += 0.22 * dtScale;
+    mg.boxX += mg.boxVx * dtScale;
+    mg.boxY += mg.boxVy * dtScale;
+    if (mg.boxX >= mg.boxTargetX) { mg.boxX = mg.boxTargetX; mg.boxVx = 0; }
+    if (mg.boxY >= groundY) {
+      mg.boxY = groundY; mg.boxVy = 0; mg.boxLanded = true;
+      Sfx.thud();
+      return true; // just landed
     }
   }
+  return false;
+}
+
+function drawTreasureBox(ctx, cx, footY, scale, openAmount) {
+  ctx.save();
+  ctx.translate(cx, footY);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = '#8a5a2c';
+  roundRect(ctx, -16, -14, 32, 14, 2); ctx.fill();
+  ctx.fillStyle = '#c99a4a';
+  roundRect(ctx, -16, -14, 32, 3, 1); ctx.fill();
+  ctx.fillStyle = '#5a3a1a';
+  roundRect(ctx, -3, -10, 6, 6, 1); ctx.fill();
+
+  if (openAmount > 0.15) {
+    ctx.globalAlpha = Math.min(1, openAmount) * 0.85;
+    const g = ctx.createRadialGradient(0, -16, 2, 0, -16, 24);
+    g.addColorStop(0, 'rgba(255,244,180,0.95)');
+    g.addColorStop(1, 'rgba(255,244,180,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, -16, 24, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.save();
+  ctx.translate(0, -14);
+  ctx.rotate(-openAmount * (Math.PI * 0.62));
+  ctx.fillStyle = '#a5703a';
+  roundRect(ctx, -16, -10, 32, 10, 4); ctx.fill();
+  ctx.fillStyle = '#c99a4a';
+  roundRect(ctx, -16, -3, 32, 3, 1); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawMemoryGrid(ctx, mg) {
+  mg.cards.forEach(c => {
+    ctx.save();
+    const squish = Math.max(0.06, Math.abs(1 - 2 * Math.min(c.flipT, 1)));
+    ctx.translate(c.x + c.w / 2, c.y + c.h / 2);
+    if (c.rot) ctx.rotate(c.rot);
+    ctx.scale(squish, 1);
+    ctx.translate(-c.w / 2, -c.h / 2);
+    if (c.flipT > 0.5) drawCardFace(ctx, 0, 0, c.w, c.h, c.icon);
+    else drawCardBack(ctx, 0, 0, c.w, c.h);
+    ctx.restore();
+  });
 }

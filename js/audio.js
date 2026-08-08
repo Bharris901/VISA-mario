@@ -170,5 +170,16 @@ const Sfx = (() => {
     fail() { slide(300, 150, 0.3, 'sawtooth', 0.15); },
     click() { tone(700, 0.05, 'square', 0.1); },
     reelStop() { tone(440, 0.06, 'square', 0.15); },
+
+    // --- Beale Street memory game ---
+    thud() { tone(90, 0.12, 'sine', 0.2); },
+    cardFlip() { tone(500, 0.05, 'square', 0.1); },
+    cardMatch() { [659, 880, 1109, 1319].forEach((f, i) => tone(f, 0.14, 'triangle', 0.18, i * 0.07)); },
+    cardMiss() { tone(220, 0.1, 'square', 0.1); tone(180, 0.12, 'square', 0.09, 0.08); },
+    treasureBurst() {
+      [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, 0.22, 'triangle', 0.2, i * 0.06));
+      slide(150, 60, 0.3, 'sawtooth', 0.15);
+    },
+    boxOpen() { slide(300, 900, 0.35, 'sine', 0.15); },
   };
 })();

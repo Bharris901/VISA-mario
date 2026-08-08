@@ -143,12 +143,51 @@ same row/column count with no dead padding rows — a mismatch reads as the
 character floating or resizing between frames, since draw size/offset is
 derived from each sprite's actual canvas dimensions.
 
-**Secret room + mini-game.** `secretRoom.js` draws the Beale Street backdrop
-(bridge/Pyramid/Overton Park Shell/neon signs) directly with canvas
-primitives — no image assets. `minigame.js` implements the 3-reel matching
-game; `CARD_DEFS` there is the single place to swap in real card images
-(falls back to colored placeholder cards when `img` is unset — see
-`assets/README.md`).
+**Secret room + memory-matching mini-game.** `secretRoom.js` draws the Beale
+Street scene's backdrop as a real photo (`assets/beale-street-bg.png`, "cover"
+-fit via `drawBealeBackground()`) plus a *procedurally* drawn (not baked
+pixel-sprite) big Mario and word-wrapped speech bubble — `drawBealeMario()`
+and `drawSpeechBubble()`. Mario is drawn much larger here (`BEALE_MARIO_HEIGHT
+= 92`, vs. `MARIO_DRAW_SCALE` elsewhere) and with smooth arc/roundRect
+primitives rather than a blown-up tiny sprite, specifically so he reads
+clearly against the photo's realistic proportions (the stone
+railing/sidewalk in the image is the scale reference). `minigame.js`
+implements the 20-card (10-pair) memory match itself: `CARD_ICONS` +
+`drawCardIcon()` (a 10-case switch, one procedurally-drawn Memphis icon per
+case — University of Memphis, Grizzlies, Redbirds, Elvis, the Pyramid, the
+Peabody duck, a Beale St. guitar, the M bridge, the Lorraine Motel sign, St.
+Jude) is the single place to change icon art; `createMemoryGame()`/
+`handleCardTap()`/`updateMemoryGame()` run the flip/match/mismatch logic;
+`startTreasureBurst()`/`updateTreasureBurst()` run the physical
+scatter-the-cards-and-arc-the-chest-to-the-ground simulation once the 10th
+pair is found.
+
+This is orchestrated as a sub-state-machine layered under the existing
+top-level `game.state` values, so the top-level switch in `main.js` didn't
+need new cases: `game.beale.phase` walks `'fall' → 'bubble' → 'grid' →
+'burst' → 'walk' → 'open'` while `game.state` stays `'secretRoom'` for the
+fall-in/speech-bubble intro, then `'minigame'` for everything from the card
+grid through the chest opening (`updateBealeIntro()`/`updateBealeGame()` in
+`main.js` drive those two phases-of-phases respectively). Card taps are
+handled directly off a `canvas` `click`/`touchstart` listener
+(`handleBealeCanvasTap()`, wired in `boot()` via `initBealeCardInput()`)
+rather than through the `Input` object, since flipping a card is "tap that
+card" not "hold a direction/button" — coordinates are rescaled from
+client-space to the canvas's internal 480×288 space via
+`getBoundingClientRect()`, same pattern any future canvas-tap interaction
+should reuse. The 'walk' phase is the one moment the on-screen D-pad
+reappears inside the secret scene (`body.beale-walk` in `style.css` overrides
+the otherwise-blanket `body.secret-scene` D-pad/JUMP/DESCEND hide) so the
+player can steer Mario to the landed chest with ordinary
+left/right — `updateBealeGame()`'s `'walk'` branch is deliberately a tiny
+bespoke horizontal-only mover, not a call into `updatePlayer()`, since nothing
+about jumping/gravity/collision applies in this scene. The final "message
+grows to fill the screen" beat is a short canvas-drawn white rounded-rect
+scaling up from the chest (`'open'` phase, `b.openT` 0→1) that hands off to
+the normal DOM `UI.showMessage()` overlay the instant it finishes growing —
+deliberately not an attempt to keep the whole thing on canvas, since the
+actual clue text needs to stay readable/reflowable, which the DOM overlay
+already handles.
 
 **Audio (`js/audio.js`).** A single `Sfx` IIFE wraps WebAudio: one-shot SFX
 via `tone()`/`slide()`, plus a lookahead-scheduled background music loop
@@ -175,9 +214,9 @@ Apply the same "compare against last frame's state" pattern rather than an
 instantaneous-distance heuristic for any future contact-direction check.
 
 **Key config knobs a task will usually touch:**
-- `CLUE_MESSAGE`, `NOT_FOUND_MESSAGE`, `FOUND_BUT_FINISHED_MESSAGE` — top of
-  `main.js`.
-- `CARD_DEFS` — `minigame.js` (mini-game card art/labels).
+- `CLUE_MESSAGE`, `BEALE_SPEECH_TEXT`, `NOT_FOUND_MESSAGE`,
+  `FOUND_BUT_FINISHED_MESSAGE` — top of `main.js`.
+- `CARD_ICONS`/`drawCardIcon()` — `minigame.js` (mini-game card art).
 - `PHYS.*` — `physics.js` (movement/jump tuning; remember the dtScale note
   above when changing anything here). There's a single ground speed
   (`WALK_MAX`/`WALK_ACCEL`) - no run/speed-tier button.
