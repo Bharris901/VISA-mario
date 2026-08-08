@@ -157,10 +157,15 @@ implements the 20-card (10-pair) memory match itself: `CARD_ICONS` +
 case — University of Memphis, Grizzlies, Redbirds, Elvis, the Pyramid, the
 Peabody duck, a Beale St. guitar, the M bridge, the Lorraine Motel sign, St.
 Jude) is the single place to change icon art; `createMemoryGame()`/
-`handleCardTap()`/`updateMemoryGame()` run the flip/match/mismatch logic;
+`handleCardTap()`/`updateMemoryGame()` run the flip/match/mismatch logic. A
+matched pair doesn't stay put or stack on itself — both cards slide to a
+shared `mg.pileX`/`mg.pileY` spot in the leftover margin to the left of the
+grid (a small deterministic per-pair jitter keeps it looking like a messy
+stack rather than one aligned block), so every match grows the same pile.
 `startTreasureBurst()`/`updateTreasureBurst()` run the physical
 scatter-the-cards-and-arc-the-chest-to-the-ground simulation once the 10th
-pair is found.
+pair is found — the chest's start position is that same pile spot, so it
+visibly bursts out from behind the pile rather than from empty space.
 
 This is orchestrated as a sub-state-machine layered under the existing
 top-level `game.state` values, so the top-level switch in `main.js` didn't
@@ -174,20 +179,34 @@ handled directly off a `canvas` `click`/`touchstart` listener
 rather than through the `Input` object, since flipping a card is "tap that
 card" not "hold a direction/button" — coordinates are rescaled from
 client-space to the canvas's internal 480×288 space via
-`getBoundingClientRect()`, same pattern any future canvas-tap interaction
-should reuse. The 'walk' phase is the one moment the on-screen D-pad
+`canvasCoordsFromClient()`, which any future canvas-tap interaction should
+reuse. **Gotcha already hit once:** naively scaling by
+`rect.width`/`rect.height` from `getBoundingClientRect()` is *not* enough,
+because `#game` is styled `object-fit: contain` (see `style.css`) — whenever
+the on-screen aspect ratio doesn't exactly match 480×288 the canvas is
+letterboxed, so its element box is bigger than the actual visible/scaled
+bitmap inside it, and every tap is off by however wide the bars are (worst
+right at the edges — this is exactly why the leftmost/rightmost card columns
+were the least reliable to tap). `canvasCoordsFromClient()` computes the
+letterbox offset itself before rescaling.
+
+The 'walk' phase is the one moment the on-screen D-pad
 reappears inside the secret scene (`body.beale-walk` in `style.css` overrides
 the otherwise-blanket `body.secret-scene` D-pad/JUMP/DESCEND hide) so the
 player can steer Mario to the landed chest with ordinary
 left/right — `updateBealeGame()`'s `'walk'` branch is deliberately a tiny
 bespoke horizontal-only mover, not a call into `updatePlayer()`, since nothing
-about jumping/gravity/collision applies in this scene. The final "message
-grows to fill the screen" beat is a short canvas-drawn white rounded-rect
-scaling up from the chest (`'open'` phase, `b.openT` 0→1) that hands off to
-the normal DOM `UI.showMessage()` overlay the instant it finishes growing —
-deliberately not an attempt to keep the whole thing on canvas, since the
-actual clue text needs to stay readable/reflowable, which the DOM overlay
-already handles.
+about jumping/gravity/collision applies in this scene. The final "chest
+opens, message pops out" beat (`drawBealeMessageCardOpen()`, `'open'` phase,
+`b.openT` 0→1) is two canvas-drawn sub-stages, not an attempt to keep the
+whole thing on canvas forever: first a small white card twirls (spins +
+grows) from the chest to screen center (`openT` 0→`BEALE_CARD_TWIRL_END`),
+then it grows the rest of the way to fill the screen while its fill color
+crossfades from card-white to the DOM `#message-overlay`'s own near-black
+background — so the handoff to the real `UI.showMessage()` overlay (fired
+the instant `openT` reaches 1) reads as one continuous motion with no color
+flash, while the actual clue text still gets to live in the DOM overlay
+where it stays readable/reflowable.
 
 **Audio (`js/audio.js`).** A single `Sfx` IIFE wraps WebAudio: one-shot SFX
 via `tone()`/`slide()`, plus a lookahead-scheduled background music loop

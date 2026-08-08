@@ -191,9 +191,15 @@ function createMemoryGame(viewW, viewH) {
       vx: 0, vy: 0, rot: 0, vrot: 0,
     };
   });
+  // Where matched pairs pile up: centered in the leftover margin to the
+  // left of the grid (not off-canvas even at the narrowest viewport), so
+  // the treasure chest has a fixed spot to burst out from behind.
+  const pileX = Math.max(4, startX / 2 - cardW / 2);
+  const pileY = startY + gridH / 2 - cardH / 2;
   return {
     cards, cardW, cardH,
     flippedIndices: [], mismatchTimer: 0, matchesFound: 0,
+    pileX, pileY,
     boxX: 0, boxY: 0, boxVx: 0, boxVy: 0, boxLanded: false, boxTargetX: viewW * 0.82,
   };
 }
@@ -227,9 +233,17 @@ function handleCardTap(mg, x, y) {
             color: ['#ffe15f', '#c9a6ff', '#5fff8f'][p % 3],
           });
         }
-        // stack: the second card slides onto the first's spot
-        mg.cards[ib]._stackTargetX = mg.cards[ia].x;
-        mg.cards[ib]._stackTargetY = mg.cards[ia].y + 2;
+        // Both cards of the pair slide into the shared pile to the left of
+        // the grid (not just onto each other) - a small deterministic jitter
+        // per pair keeps the pile looking like a messy stack of cards rather
+        // than one perfectly aligned block.
+        const pairIndex = mg.matchesFound - 1;
+        const jitterX = ((pairIndex * 37) % 9) - 4;
+        const jitterY = ((pairIndex * 53) % 9) - 4;
+        mg.cards[ia]._stackTargetX = mg.pileX + jitterX;
+        mg.cards[ia]._stackTargetY = mg.pileY + jitterY;
+        mg.cards[ib]._stackTargetX = mg.pileX + jitterX + 1;
+        mg.cards[ib]._stackTargetY = mg.pileY + jitterY + 1;
       } else {
         mg.mismatchTimer = 700;
         Sfx.cardMiss();
@@ -266,8 +280,11 @@ function startTreasureBurst(mg, viewW, viewH) {
     c.vy = Math.sin(angle) * speed - 2;
     c.vrot = (Math.random() - 0.5) * 0.3;
   });
-  mg.boxX = viewW * 0.5; mg.boxY = viewH * 0.32;
-  mg.boxVx = 1.7; mg.boxVy = -3.2;
+  // The chest starts right at the card pile (all 20 cards end up clustered
+  // there once the 10th pair matches) so it visibly bursts out from behind
+  // the pile, then arcs over to land on the ground on the right.
+  mg.boxX = mg.pileX + mg.cardW / 2; mg.boxY = mg.pileY + mg.cardH / 2 - 8;
+  mg.boxVx = 3.0; mg.boxVy = -3.4;
   mg.boxLanded = false;
   Sfx.treasureBurst();
 }
@@ -279,12 +296,25 @@ function updateTreasureBurst(mg, dt, groundY) {
     c.rot = (c.rot || 0) + c.vrot * dtScale;
   });
   if (!mg.boxLanded) {
-    mg.boxVy += 0.22 * dtScale;
-    mg.boxX += mg.boxVx * dtScale;
-    mg.boxY += mg.boxVy * dtScale;
-    if (mg.boxX >= mg.boxTargetX) { mg.boxX = mg.boxTargetX; mg.boxVx = 0; }
-    if (mg.boxY >= groundY) {
-      mg.boxY = groundY; mg.boxVy = 0; mg.boxLanded = true;
+    // X (reaching the target spot on the right) and Y (falling to the
+    // ground) are resolved independently, and "landed" only fires once
+    // *both* are done - not as soon as gravity happens to bring it down.
+    // The chest now bursts from the card pile (near the left edge, close to
+    // ground level already) rather than screen-center, so the vertical drop
+    // alone is short; if landing were gated on Y only, the chest would touch
+    // down mid-flight, well short of the intended right-side spot, and just
+    // stop there instead of continuing over.
+    if (mg.boxY < groundY) {
+      mg.boxVy += 0.22 * dtScale;
+      mg.boxY += mg.boxVy * dtScale;
+      if (mg.boxY >= groundY) { mg.boxY = groundY; mg.boxVy = 0; }
+    }
+    if (mg.boxX < mg.boxTargetX) {
+      mg.boxX += mg.boxVx * dtScale;
+      if (mg.boxX >= mg.boxTargetX) { mg.boxX = mg.boxTargetX; mg.boxVx = 0; }
+    }
+    if (mg.boxY >= groundY && mg.boxX >= mg.boxTargetX) {
+      mg.boxLanded = true;
       Sfx.thud();
       return true; // just landed
     }

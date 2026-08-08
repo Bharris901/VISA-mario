@@ -490,30 +490,61 @@ function renderSecretScene(dt) {
     return;
   }
 
-  // 'walk' / 'open'
-  drawTreasureBox(ctx, game.memory.boxX, groundY, BEALE_BOX_SCALE, b.phase === 'open' ? b.openT : 0);
+  // 'walk' / 'open' - the lid finishes opening by BEALE_CARD_TWIRL_END, i.e.
+  // just before the message card twirls out of it.
+  const lidOpenAmount = b.phase === 'open' ? Math.min(1, b.openT / BEALE_CARD_TWIRL_END) : 0;
+  drawTreasureBox(ctx, game.memory.boxX, groundY, BEALE_BOX_SCALE, lidOpenAmount);
   const pose = b.phase === 'walk'
     ? (b.walking ? (Math.floor((b.walkAnimTimer || 0) / 150) % 2 === 0 ? 'walk1' : 'walk2') : 'stand')
     : 'stand';
   drawBealeMario(ctx, b.marioFootX, groundY, BEALE_MARIO_HEIGHT, pose, b.marioFacing || 1);
 
-  if (b.phase === 'walk') {
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fillRect(0, VIEW_H - 26, VIEW_W, 26);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 12px "Courier New", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('Walk to the treasure box!', VIEW_W / 2, VIEW_H - 9);
-  } else if (b.phase === 'open' && b.openT > 0) {
-    // A white "page" bursts out of the chest and grows to fill the screen,
-    // handing off to the real (readable, DOM) congrats+clue message once
-    // it's fully grown - see updateBealeGame's 'open' branch.
-    const t = b.openT;
+  if (b.phase === 'open' && b.openT > 0) {
+    drawBealeMessageCardOpen(ctx, game.memory.boxX, groundY - 20, b.openT);
+  }
+}
+
+// The "message card" that pops the chest open: it twirls out (spinning while
+// growing, traveling from the chest toward screen center) for the first
+// TWIRL_END fraction of openT, then - already centered and unrotated -
+// grows the rest of the way to fill the screen, crossfading its fill color
+// from card-white to the DOM message overlay's near-black so the handoff to
+// the real UI.showMessage() overlay (see updateBealeGame's 'open' branch)
+// reads as one continuous motion rather than a flash cut.
+const BEALE_CARD_TWIRL_END = 0.45;
+function drawBealeMessageCardOpen(ctx, chestX, chestY, openT) {
+  if (openT < BEALE_CARD_TWIRL_END) {
+    const tt = openT / BEALE_CARD_TWIRL_END;
+    const cardW = 90, cardH = 130;
+    const endX = VIEW_W / 2, endY = VIEW_H / 2;
+    const cx = chestX + (endX - chestX) * tt;
+    const cy = chestY + (endY - chestY) * tt;
+    const scale = 0.35 + 0.65 * tt;
+    const rotation = tt * Math.PI * 6; // three full spins, ends upright
     ctx.save();
-    ctx.globalAlpha = Math.min(1, t * 1.4);
+    ctx.translate(cx, cy);
+    ctx.rotate(rotation);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = Math.min(1, tt * 3);
     ctx.fillStyle = '#fff';
-    const w = VIEW_W * t, h = VIEW_H * t;
-    roundRect(ctx, game.memory.boxX - w / 2, groundY - 30 - h / 2, w, h, 12);
+    roundRect(ctx, -cardW / 2, -cardH / 2, cardW, cardH, 10);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, -cardW / 2, -cardH / 2, cardW, cardH, 10);
+    ctx.stroke();
+    ctx.restore();
+  } else {
+    const tt = (openT - BEALE_CARD_TWIRL_END) / (1 - BEALE_CARD_TWIRL_END);
+    const cardW = 90, cardH = 130;
+    const w = cardW + (VIEW_W - cardW) * tt;
+    const h = cardH + (VIEW_H - cardH) * tt;
+    // white -> the overlay's near-black, so the final frame here matches
+    // the DOM overlay's own background with no visible seam
+    const shade = Math.round(255 * (1 - tt));
+    ctx.save();
+    ctx.fillStyle = `rgba(${shade},${shade},${shade},${0.92 + 0.08 * (1 - tt)})`;
+    roundRect(ctx, VIEW_W / 2 - w / 2, VIEW_H / 2 - h / 2, w, h, 12 * (1 - tt));
     ctx.fill();
     ctx.restore();
   }
@@ -600,14 +631,47 @@ function updateBealeGame(dt) {
   }
 }
 
+// Converts a client-space (viewport) coordinate to the canvas's internal
+// 480x288 drawing space. `#game` is styled `width:100%; height:100%;
+// object-fit: contain` (see style.css) so, whenever the on-screen aspect
+// ratio doesn't exactly match 480:288, the canvas is letterboxed - its
+// *element* box (what getBoundingClientRect returns) is bigger than the
+// actual visible/scaled bitmap inside it. Naively scaling by
+// rect.width/rect.height (as an early version of this did) ignores those
+// letterbox bars, so every tap is off by however wide the bars are - worst
+// at the edges, which is exactly why the leftmost/rightmost card columns
+// were the most unreliable to tap. Any future canvas-tap interaction should
+// reuse this helper rather than rect.width/height directly.
+function canvasCoordsFromClient(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const elemAspect = rect.width / rect.height;
+  const contentAspect = VIEW_W / VIEW_H;
+  let contentW, contentH, offsetX, offsetY;
+  if (elemAspect > contentAspect) {
+    // letterboxed left/right - element is wider than the scaled content
+    contentH = rect.height;
+    contentW = contentH * contentAspect;
+    offsetX = (rect.width - contentW) / 2;
+    offsetY = 0;
+  } else {
+    // letterboxed top/bottom
+    contentW = rect.width;
+    contentH = contentW / contentAspect;
+    offsetX = 0;
+    offsetY = (rect.height - contentH) / 2;
+  }
+  return {
+    x: (clientX - rect.left - offsetX) * (VIEW_W / contentW),
+    y: (clientY - rect.top - offsetY) * (VIEW_H / contentH),
+  };
+}
+
 // Card taps are handled outside the update() tick (directly off the DOM
 // event) so a flip registers the instant a finger lands, same as every
 // other touch control in this game.
 function handleBealeCanvasTap(clientX, clientY) {
   if (!game.beale || game.beale.phase !== 'grid' || !game.memory) return;
-  const rect = canvas.getBoundingClientRect();
-  const x = (clientX - rect.left) * (VIEW_W / rect.width);
-  const y = (clientY - rect.top) * (VIEW_H / rect.height);
+  const { x, y } = canvasCoordsFromClient(clientX, clientY);
   const won = handleCardTap(game.memory, x, y);
   if (won) {
     game.beale.phase = 'burst';
