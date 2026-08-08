@@ -6,7 +6,7 @@
 const CLUE_MESSAGE =
   "Congrats Memphis Mario!\n\n[PLACEHOLDER — insert real scavenger-hunt clue text here]";
 
-const BEALE_SPEECH_TEXT = "I need your help to match the cards in order to reveal the next clue!";
+const BEALE_SPEECH_TEXT = "I need your help to match the cards in order to reveal the next clue! Tap to begin.";
 
 const NOT_FOUND_MESSAGE = "You made it to the end! But…\nYou didn't find the clue :(\nStart over to try again!";
 const FOUND_BUT_FINISHED_MESSAGE =
@@ -63,6 +63,7 @@ function resetLevel() {
   game.cameraX = 0;
   game.beale = null;
   game.memory = null;
+  Sfx.stopMiniGameMusic(); // safety net in case a reset happens mid mini-game
   game.state = 'playing';
 }
 
@@ -453,12 +454,15 @@ function drawPipeEnterAnim(camX) {
 // --- Secret room / minigame rendering ---
 // Sub-phases (game.beale.phase), all drawn over the same photo backdrop:
 //   'fall'   - Mario drops in from the top of the screen (secretRoom state)
-//   'bubble' - he's landed on the left and a speech bubble reads his line
+//   'bubble' - he's landed on the left and a speech bubble reads his line;
+//              tapping anywhere dismisses it and starts the grid
 //   'grid'   - the 20-card memory board is live (tap to flip)             \ minigame
 //   'burst'  - winning pair #10 pops the treasure chest, cards scatter    /  state
 //   'walk'   - player walks Mario over to the landed chest
 //   'open'   - chest opens, a white "page" grows to fill the screen, then
 //              hands off to the DOM message overlay with the clue text
+// Mario stays visible in the same spot (where he landed) through 'fall'
+// through 'burst' - he only moves once the 'walk' phase starts.
 function renderSecretScene(dt) {
   drawBealeBackground(ctx, VIEW_W, VIEW_H);
   const b = game.beale;
@@ -475,6 +479,7 @@ function renderSecretScene(dt) {
 
   if (b.phase === 'grid') {
     drawMemoryGrid(ctx, game.memory);
+    drawBealeMario(ctx, b.marioFootX, groundY, BEALE_MARIO_HEIGHT, 'stand', 1);
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
     ctx.fillRect(0, VIEW_H - 26, VIEW_W, 26);
     ctx.fillStyle = '#fff';
@@ -486,6 +491,7 @@ function renderSecretScene(dt) {
 
   if (b.phase === 'burst') {
     drawMemoryGrid(ctx, game.memory);
+    drawBealeMario(ctx, b.marioFootX, groundY, BEALE_MARIO_HEIGHT, 'stand', 1);
     drawTreasureBox(ctx, game.memory.boxX, game.memory.boxY, BEALE_BOX_SCALE, 0);
     return;
   }
@@ -574,14 +580,9 @@ function updateBealeIntro(dt) {
       b.phaseTimer = 0;
       Sfx.thud();
     }
-  } else if (b.phase === 'bubble') {
-    b.phaseTimer += dt;
-    if (b.phaseTimer > 3200) {
-      game.state = 'minigame';
-      game.memory = createMemoryGame(VIEW_W, VIEW_H);
-      b.phase = 'grid';
-    }
   }
+  // 'bubble' just waits here - dismissed by a tap anywhere on screen,
+  // handled in handleBealeCanvasTap (not a timer), which starts the grid.
 }
 
 function updateBealeGame(dt) {
@@ -618,7 +619,9 @@ function updateBealeGame(dt) {
       game.clueFound = true;
       game.state = 'frozen';
       UI.showMessage(CLUE_MESSAGE, () => {
-        // send Mario back up the pipe to keep playing toward the flagpole
+        // send Mario back up the pipe to keep playing toward the flagpole,
+        // and bring the main level music back (it was paused for the
+        // mini-game's own loop when the card grid started)
         game.player.inPipe = false;
         game.player.x = (SECRET_PIPE_COL) * TILE;
         game.player.y = (GROUND_ROW - 4) * TILE;
@@ -626,6 +629,7 @@ function updateBealeGame(dt) {
         game.beale = null;
         game.memory = null;
         game.state = 'playing';
+        Sfx.startMusic();
       }, 'AWESOME!');
     }
   }
@@ -666,22 +670,38 @@ function canvasCoordsFromClient(clientX, clientY) {
   };
 }
 
-// Card taps are handled outside the update() tick (directly off the DOM
-// event) so a flip registers the instant a finger lands, same as every
-// other touch control in this game.
+// Card taps (and the bubble-dismissing tap) are handled outside the
+// update() tick (directly off the DOM event) so they register the instant
+// a finger lands, same as every other touch control in this game.
 function handleBealeCanvasTap(clientX, clientY) {
-  if (!game.beale || game.beale.phase !== 'grid' || !game.memory) return;
+  if (!game.beale) return;
+
+  if (game.beale.phase === 'bubble') {
+    // Any tap anywhere dismisses the speech bubble and starts the grid.
+    // The main level's music pauses for the mini-game's own peppy loop,
+    // which plays only while the grid is live (see the 'grid' win branch
+    // below and updateBealeGame's 'open' completion for where it resumes).
+    Sfx.stopMusic();
+    Sfx.startMiniGameMusic();
+    game.state = 'minigame';
+    game.memory = createMemoryGame(VIEW_W, VIEW_H, game.beale.marioFootX, game.beale.groundY - BEALE_MARIO_HEIGHT);
+    game.beale.phase = 'grid';
+    return;
+  }
+
+  if (game.beale.phase !== 'grid' || !game.memory) return;
   const { x, y } = canvasCoordsFromClient(clientX, clientY);
   const won = handleCardTap(game.memory, x, y);
   if (won) {
+    Sfx.stopMiniGameMusic();
     game.beale.phase = 'burst';
-    startTreasureBurst(game.memory, VIEW_W, VIEW_H);
+    startTreasureBurst(game.memory, VIEW_W, VIEW_H); // plays the celebration cue
   }
 }
 
 function initBealeCardInput() {
   canvas.addEventListener('touchstart', (e) => {
-    if (!game.beale || game.beale.phase !== 'grid') return;
+    if (!game.beale || (game.beale.phase !== 'grid' && game.beale.phase !== 'bubble')) return;
     e.preventDefault();
     const t = e.changedTouches[0];
     handleBealeCanvasTap(t.clientX, t.clientY);

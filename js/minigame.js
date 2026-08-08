@@ -173,14 +173,19 @@ function drawCardFace(ctx, x, y, w, h, iconId) {
   drawCardIcon(ctx, iconId, x + w / 2, y + h / 2, Math.min(w, h) * 0.82);
 }
 
-function createMemoryGame(viewW, viewH) {
+// marioFootX/marioTopY: where Mario is standing (he stays visible in place
+// for the whole mini-game, not just the fall-in intro) - the grid shifts
+// right just enough to clear him, and the pile of matched cards builds up
+// just above his head.
+function createMemoryGame(viewW, viewH, marioFootX, marioTopY) {
   const deck = shuffleDeck([...CARD_ICONS, ...CARD_ICONS]);
   const cols = 5, rows = 4;
   const gap = 6;
   const cardW = 58, cardH = 44;
   const gridW = cols * cardW + (cols - 1) * gap;
   const gridH = rows * cardH + (rows - 1) * gap;
-  const startX = (viewW - gridW) / 2;
+  const marioClearance = marioFootX + cardW / 2 + 14;
+  const startX = Math.max((viewW - gridW) / 2, marioClearance);
   const startY = (viewH - gridH) / 2 + 6;
   const cards = deck.map((icon, i) => {
     const col = i % cols, row = Math.floor(i / cols);
@@ -191,11 +196,11 @@ function createMemoryGame(viewW, viewH) {
       vx: 0, vy: 0, rot: 0, vrot: 0,
     };
   });
-  // Where matched pairs pile up: centered in the leftover margin to the
-  // left of the grid (not off-canvas even at the narrowest viewport), so
-  // the treasure chest has a fixed spot to burst out from behind.
-  const pileX = Math.max(4, startX / 2 - cardW / 2);
-  const pileY = startY + gridH / 2 - cardH / 2;
+  // Where matched pairs pile up: directly above Mario's head, with a small
+  // gap so the pile never visually touches him - the treasure chest gets a
+  // fixed spot to burst out from behind once the last pair is found.
+  const pileX = marioFootX - cardW / 2;
+  const pileY = marioTopY - cardH - 10;
   return {
     cards, cardW, cardH,
     flippedIndices: [], mismatchTimer: 0, matchesFound: 0,

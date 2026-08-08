@@ -82,8 +82,25 @@ music stops, fireworks spawn, and the win/lose message is scheduled.
 **Music start/stop/restart.** Only call `restartLevel()` (stops+restarts
 music, then calls `resetLevel()`) from a button that represents "start
 fresh" (death's Start Over, the flagpole's Play Again). The mini-game win
-message's continue button calls neither — it resumes play in place at the
-secret pipe, so it must never stop or restart the music.
+message's continue button doesn't call it either — it resumes play in
+place at the secret pipe, not a fresh level, so it must never *restart*
+the main theme from the top. It does, however, explicitly `startMusic()`
+there, because by that point the main theme was deliberately paused (see
+below) for the Beale scene's own music - that's a resume, not a restart.
+
+**Two separate music loops, never both at once.** `Sfx.startMusic()`/
+`stopMusic()` is the main level's looping theme. `Sfx.startMiniGameMusic()`/
+`stopMiniGameMusic()` (`js/audio.js`) is a second, independent
+lookahead-scheduled loop - its own step/scheduler state, a quicker step and
+bigger melodic jumps for a peppier feel - that exists solely for the Beale
+Street card-matching grid. `main.js` pauses one before starting the other so
+they never overlap: `handleBealeCanvasTap()`'s `'bubble'`-phase branch calls
+`stopMusic()` + `startMiniGameMusic()` right as the grid appears; finding the
+10th pair calls `stopMiniGameMusic()` (then `startTreasureBurst()` plays the
+short celebration cue); the clue message's continue button calls
+`startMusic()` to bring the main theme back once play resumes.
+`resetLevel()` also calls `stopMiniGameMusic()` defensively in case a reset
+ever happens mid mini-game.
 
 **Frame-rate independence (`dtScale`).** Physics constants in `physics.js`
 (`PHYS.*`) are tuned as "per 1/60s frame" deltas. Every place that applies
@@ -159,13 +176,25 @@ Peabody duck, a Beale St. guitar, the M bridge, the Lorraine Motel sign, St.
 Jude) is the single place to change icon art; `createMemoryGame()`/
 `handleCardTap()`/`updateMemoryGame()` run the flip/match/mismatch logic. A
 matched pair doesn't stay put or stack on itself — both cards slide to a
-shared `mg.pileX`/`mg.pileY` spot in the leftover margin to the left of the
-grid (a small deterministic per-pair jitter keeps it looking like a messy
-stack rather than one aligned block), so every match grows the same pile.
+shared `mg.pileX`/`mg.pileY` spot (a small deterministic per-pair jitter
+keeps it looking like a messy stack rather than one aligned block), so every
+match grows the same pile. Mario stays visible in place, standing where he
+landed, through the whole `'fall'` → `'bubble'` → `'grid'` → `'burst'`
+sequence (he only moves once `'walk'` starts) — `createMemoryGame()` takes
+his foot/head position and both shifts the grid's `startX` right just far
+enough to clear him *and* plants the pile directly above his head
+(`pileY = marioTopY - cardH - 10`), so the pile visibly builds up over him
+rather than off in a margin unrelated to anything on screen.
 `startTreasureBurst()`/`updateTreasureBurst()` run the physical
 scatter-the-cards-and-arc-the-chest-to-the-ground simulation once the 10th
 pair is found — the chest's start position is that same pile spot, so it
 visibly bursts out from behind the pile rather than from empty space.
+**Gotcha already hit once:** since the chest now starts near the ground
+already (at the pile, not screen-center), gravity alone would bring it back
+down to the ground well before it reached the right-side landing spot,
+stopping it short - `updateTreasureBurst()` only reports "landed" once the
+chest has *both* reached its target X *and* touched the ground, sliding
+along the ground the rest of the way if it touches down early.
 
 This is orchestrated as a sub-state-machine layered under the existing
 top-level `game.state` values, so the top-level switch in `main.js` didn't
@@ -173,11 +202,16 @@ need new cases: `game.beale.phase` walks `'fall' → 'bubble' → 'grid' →
 'burst' → 'walk' → 'open'` while `game.state` stays `'secretRoom'` for the
 fall-in/speech-bubble intro, then `'minigame'` for everything from the card
 grid through the chest opening (`updateBealeIntro()`/`updateBealeGame()` in
-`main.js` drive those two phases-of-phases respectively). Card taps are
-handled directly off a `canvas` `click`/`touchstart` listener
-(`handleBealeCanvasTap()`, wired in `boot()` via `initBealeCardInput()`)
-rather than through the `Input` object, since flipping a card is "tap that
-card" not "hold a direction/button" — coordinates are rescaled from
+`main.js` drive those two phases-of-phases respectively). The `'bubble'`
+phase has no timer — it waits indefinitely; a tap anywhere on screen (not
+just on Mario) dismisses the speech bubble and starts the grid, so
+`updateBealeIntro()`'s `'bubble'` branch is a no-op and the actual
+transition lives in `handleBealeCanvasTap()`. Card taps (and that
+bubble-dismissing tap) are handled directly off a `canvas`
+`click`/`touchstart` listener (`handleBealeCanvasTap()`, wired in `boot()`
+via `initBealeCardInput()`) rather than through the `Input` object, since
+tapping is a fundamentally different interaction than "hold a
+direction/button" — coordinates are rescaled from
 client-space to the canvas's internal 480×288 space via
 `canvasCoordsFromClient()`, which any future canvas-tap interaction should
 reuse. **Gotcha already hit once:** naively scaling by

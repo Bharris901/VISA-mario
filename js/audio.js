@@ -122,6 +122,55 @@ const Sfx = (() => {
     }
   }
 
+  // --- Mini-game music: a separate, peppier/faster loop that only plays
+  // while the Beale Street card grid is up (see js/main.js), replacing the
+  // main level's theme for that stretch (paused, not stopped-for-good) so
+  // the two never overlap. Runs on its own step/scheduler state so it can't
+  // interfere with the main theme's. A quicker step (0.15s vs 0.16s) plus
+  // bigger melodic jumps than the main theme give it a distinctly more
+  // "hurry up and find the match!" energy.
+  const MINI_STEP_SEC = 0.15;
+  const MINI_MUSIC_VOL = 0.05;
+
+  const MG_1_MEL = [784, 880, 988, 880, 784, 659, 784, 880, 988, 1047, 988, 880, 784, '.', '.', '.'];
+  const MG_1_BASS = [392, '.', '.', '.', 330, '.', '.', '.', 392, '.', '.', '.', 440, '.', '.', '.'];
+  const MG_2_MEL = [1047, 988, 880, 988, 1047, 1175, 1047, 988, 880, 988, 1047, 880, 988, '.', '.', '.'];
+  const MG_2_BASS = [440, '.', '.', '.', 392, '.', '.', '.', 440, '.', '.', '.', 523, '.', '.', '.'];
+  const MG_3_MEL = [659, 784, 880, 784, 659, 587, 659, 784, 880, 784, 659, 587, 523, '.', '.', '.'];
+  const MG_3_BASS = [330, '.', '.', '.', 294, '.', '.', '.', 330, '.', '.', '.', 262, '.', '.', '.'];
+  const MG_4_MEL = [523, 659, 784, 1047, 988, 880, 784, 659, 587, 659, 784, 880, 1047, '.', '.', '.'];
+  const MG_4_BASS = [262, '.', '.', '.', 349, '.', '.', '.', 294, '.', '.', '.', 392, '.', '.', '.'];
+
+  const MG_PHRASES = {
+    1: { mel: MG_1_MEL, bass: MG_1_BASS }, 2: { mel: MG_2_MEL, bass: MG_2_BASS },
+    3: { mel: MG_3_MEL, bass: MG_3_BASS }, 4: { mel: MG_4_MEL, bass: MG_4_BASS },
+  };
+  // 6 phrases * 16 steps * 0.15s = 14.4s, ~15s before it loops.
+  const MG_ORDER = [1, 2, 1, 3, 2, 4];
+  const MINI_MELODY = MG_ORDER.flatMap(p => MG_PHRASES[p].mel);
+  const MINI_BASS = MG_ORDER.flatMap(p => MG_PHRASES[p].bass);
+
+  let miniMusicOn = false;
+  let miniMusicStep = 0;
+  let miniNextNoteTime = 0;
+  let miniSchedulerHandle = null;
+
+  function scheduleMiniAhead() {
+    const c = ensure();
+    while (miniNextNoteTime < c.currentTime + 0.2) {
+      const mel = MINI_MELODY[miniMusicStep % MINI_MELODY.length];
+      const bass = MINI_BASS[miniMusicStep % MINI_BASS.length];
+      if (mel !== '.') toneAt(miniNextNoteTime, mel, MINI_STEP_SEC * 0.8, 'square', MINI_MUSIC_VOL);
+      if (bass !== '.') toneAt(miniNextNoteTime, bass, MINI_STEP_SEC * 0.9, 'triangle', MINI_MUSIC_VOL * 0.85);
+      // brighter/quicker pulse than the main theme's, for extra pep
+      const beat = miniMusicStep % 4;
+      if (beat === 0) toneAt(miniNextNoteTime, 120, 0.08, 'sine', MINI_MUSIC_VOL * 0.75);
+      if (beat === 2) toneAt(miniNextNoteTime, 2100, 0.03, 'triangle', MINI_MUSIC_VOL * 0.55);
+      miniNextNoteTime += MINI_STEP_SEC;
+      miniMusicStep++;
+    }
+  }
+
   return {
     unlock() { ensure(); },
     startMusic() {
@@ -137,6 +186,20 @@ const Sfx = (() => {
       musicOn = false;
       if (schedulerHandle) clearInterval(schedulerHandle);
       schedulerHandle = null;
+    },
+    startMiniGameMusic() {
+      if (miniMusicOn) return;
+      miniMusicOn = true;
+      const c = ensure();
+      miniMusicStep = 0;
+      miniNextNoteTime = c.currentTime + 0.05;
+      scheduleMiniAhead();
+      miniSchedulerHandle = setInterval(scheduleMiniAhead, 100);
+    },
+    stopMiniGameMusic() {
+      miniMusicOn = false;
+      if (miniSchedulerHandle) clearInterval(miniSchedulerHandle);
+      miniSchedulerHandle = null;
     },
     jump() { slide(300, 600, 0.18); },
     coin() { tone(988, 0.08, 'square', 0.18); tone(1319, 0.18, 'square', 0.15, 0.06); },
