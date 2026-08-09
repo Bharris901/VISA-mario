@@ -420,6 +420,13 @@ function render(dt) {
   // tap-only) but re-enabled during the brief player-controlled "walk to the
   // treasure box" sub-phase - see the body.beale-walk rule in style.css.
   document.body.classList.toggle('beale-walk', inSecretScene && !!game.beale && game.beale.phase === 'walk');
+  // #game is styled `image-rendering: pixelated` (see style.css) so the
+  // browser's own upscale of the low-res canvas backing store to the actual
+  // on-screen size stays crisp for tile/sprite art - but the same forced
+  // nearest-neighbor scaling makes the Beale scene's photo backdrop look
+  // blocky. Nothing pixel-art is drawn while inSecretScene, so switch the
+  // whole canvas element to smooth upscaling for the duration of the scene.
+  canvas.style.imageRendering = inSecretScene ? 'auto' : 'pixelated';
 
   if (inSecretScene) {
     renderSecretScene(dt);

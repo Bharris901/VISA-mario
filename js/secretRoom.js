@@ -24,7 +24,18 @@ function drawBealeBackground(ctx, w, h) {
     const iw = bealeBgImage.naturalWidth, ih = bealeBgImage.naturalHeight;
     const scale = Math.max(w / iw, h / ih); // "cover" fit, crop overflow
     const dw = iw * scale, dh = ih * scale;
+    // main.js sets ctx.imageSmoothingEnabled = false globally so the game's
+    // pixel-art sprites stay crisp - but that same setting makes a *photo*
+    // look blocky/aliased when downscaled. This is the one draw call on the
+    // whole canvas that isn't pixel art, so re-enable smoothing just for it
+    // (save/restore scopes it to this call only; smoothing has no effect on
+    // the procedural Mario/card/UI vector drawing elsewhere in this scene,
+    // only on drawImage, so nothing else needs to toggle it back).
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(bealeBgImage, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    ctx.restore();
   } else {
     // brief fallback while the image loads
     const g = ctx.createLinearGradient(0, 0, 0, h);
