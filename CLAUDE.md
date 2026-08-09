@@ -168,12 +168,41 @@ and `drawSpeechBubble()`. Mario is drawn much larger here (`BEALE_MARIO_HEIGHT
 = 92`, vs. `MARIO_DRAW_SCALE` elsewhere) and with smooth arc/roundRect
 primitives rather than a blown-up tiny sprite, specifically so he reads
 clearly against the photo's realistic proportions (the stone
-railing/sidewalk in the image is the scale reference). `minigame.js`
-implements the 20-card (10-pair) memory match itself: `CARD_ICONS` +
-`drawCardIcon()` (a 10-case switch, one procedurally-drawn Memphis icon per
-case — University of Memphis, Grizzlies, Redbirds, Elvis, the Pyramid, the
+railing/sidewalk in the image is the scale reference).
+
+**Gotcha already hit once: real (non-pixel-art) images need smoothing
+re-enabled, twice.** `main.js` sets `ctx.imageSmoothingEnabled = false`
+globally, and `style.css` sets `#game { image-rendering: pixelated }`, both
+so the game's pixel-art tiles/sprites stay crisp - but the same two settings
+make any *photo or real image* drawn into the canvas look blocky/aliased
+when scaled, since nothing ever re-enabled smoothing for it. Every real
+image draw (the Beale backdrop in `drawBealeBackground()`, and the five real
+card-icon photos below) wraps its `drawImage()` call in
+`save()`/`imageSmoothingEnabled = true` + `imageSmoothingQuality = 'high'`/
+`restore()` so just that call gets smooth interpolation - smoothing has no
+effect on path/arc/roundRect fills, so nothing else needs to change. `render()`
+in `main.js` also toggles `canvas.style.imageRendering` between `'pixelated'`
+(normal gameplay) and `'auto'` (the whole Beale scene, which never draws any
+pixel-art tiles) so the *browser's* upscale of the canvas element to its
+on-screen size is smooth too - the per-`drawImage` fix alone isn't enough,
+since that CSS property scales the whole already-rendered canvas afterward
+regardless of how any individual draw call was done. Apply both halves of
+this pattern to any future real-image asset added to the canvas.
+
+`minigame.js` implements the 20-card (10-pair) memory match itself:
+`CARD_ICONS` + `drawCardIcon()` (a 10-case switch, one Memphis icon per case
+— University of Memphis, Grizzlies, Redbirds, Elvis, the Pyramid, the
 Peabody duck, a Beale St. guitar, the M bridge, the Lorraine Motel sign, St.
-Jude) is the single place to change icon art; `createMemoryGame()`/
+Jude) is the single place to change icon art. Five of the ten (Grizzlies,
+Elvis, guitar, bridge, Lorraine Motel sign) are real user-provided artwork
+rather than procedural drawing — `CARD_PHOTOS` maps those ids to
+`assets/card-*.png` files, `loadCardPhotos()` (called from `boot()`)
+preloads them, and `drawCardIcon()` draws whichever's ready "contain"-fit
+(whole image visible, no cropping, unlike the backdrop's "cover" fit) with
+smoothing scoped on for just that call per the gotcha above; the procedural
+switch-case still covers the other five ids, and also serves as the brief
+fallback for the five photo ids before their image has loaded.
+`createMemoryGame()`/
 `handleCardTap()`/`updateMemoryGame()` run the flip/match/mismatch logic. A
 matched pair doesn't stay put or stack on itself — both cards slide to a
 shared `mg.pileX`/`mg.pileY` spot (a small deterministic per-pair jitter

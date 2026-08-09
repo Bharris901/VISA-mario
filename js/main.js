@@ -806,6 +806,7 @@ function boot() {
   initInput();
   initBealeCardInput();
   loadBealeAssets();
+  loadCardPhotos();
   resetLevel();
   game.state = 'start'; // wait for tap
   fitCanvas();

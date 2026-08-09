@@ -8,6 +8,28 @@
 
 const CARD_ICONS = ['memphis', 'grizzlies', 'redbirds', 'elvis', 'pyramid', 'duck', 'guitar', 'bridge', 'lorraine', 'stjude'];
 
+// Real user-provided artwork for 5 of the 10 icons (the other 5 stay
+// procedurally drawn below). These files are used as-is - never re-touched,
+// re-pixelated, or otherwise edited - just scaled down to fit the card.
+const CARD_PHOTOS = {
+  elvis: 'assets/card-elvis.png',
+  grizzlies: 'assets/card-grizzlies.png',
+  guitar: 'assets/card-guitar.png',
+  lorraine: 'assets/card-lorraine.png',
+  bridge: 'assets/card-bridge.png',
+};
+const cardPhotoImages = {};
+const cardPhotoLoaded = {};
+function loadCardPhotos() {
+  Object.entries(CARD_PHOTOS).forEach(([id, src]) => {
+    const img = new Image();
+    cardPhotoImages[id] = img;
+    cardPhotoLoaded[id] = false;
+    img.onload = () => { cardPhotoLoaded[id] = true; };
+    img.src = src;
+  });
+}
+
 function shuffleDeck(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -18,8 +40,31 @@ function shuffleDeck(arr) {
 
 // Original pixel-art interpretations of each Memphis icon (not traced from
 // any source image - hand-drawn from general knowledge of each mark) drawn
-// with canvas primitives into a size x size box centered at (cx, cy).
+// with canvas primitives into a size x size box centered at (cx, cy). Five
+// of the ten ids (see CARD_PHOTOS above) instead draw the real provided
+// artwork once it's loaded - the procedural version below still renders as
+// a brief fallback for those five while the image loads.
 function drawCardIcon(ctx, id, cx, cy, size) {
+  if (CARD_PHOTOS[id] && cardPhotoLoaded[id]) {
+    const img = cardPhotoImages[id];
+    // "Contain" fit - shrink to fit inside the size x size box without
+    // cropping (unlike the Beale backdrop's "cover" fit), since these are
+    // discrete pieces of art that need to stay fully visible, not a
+    // fill-the-frame background.
+    const scale = Math.min(size / img.naturalWidth, size / img.naturalHeight);
+    const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
+    // Same reasoning as the Beale Street backdrop fix: the shared canvas
+    // context has imageSmoothingEnabled = false globally (js/main.js) so
+    // the game's pixel-art sprites stay crisp, which would otherwise make
+    // this downscale blocky/aliased. Scope smoothing to just this draw.
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
+    ctx.restore();
+    return;
+  }
+
   const s = size / 40;
   const rr = (x, y, w, h, r) => roundRect(ctx, x, y, w, h, r);
   ctx.save();
