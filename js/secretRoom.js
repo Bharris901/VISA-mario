@@ -1,16 +1,32 @@
 // ---------------------------------------------------------------------------
 // The hidden Beale Street scene: a real pixel-art skyline photo as the
-// backdrop, with Mario drawn *procedurally* (arcs/rounded-rects) rather than
-// as a tiny baked pixel sprite - he needs to read clearly at a much larger
-// size here than anywhere else in the game (see BEALE_MARIO_HEIGHT), and
-// smooth shape primitives scale far better than blowing up an 16px sprite.
+// backdrop, with a real static Mario image and a real treasure-chest image
+// (closed/open) - all three photo-style assets, drawn "as-is" at whatever
+// scale the scene needs, never re-touched/re-pixelated (see drawImage calls
+// below for the imageSmoothingEnabled gotcha this all shares). Mario no
+// longer moves or changes pose in this scene at all - he drops in once and
+// sits in the same spot for the whole mini-game - so unlike a normal sprite
+// there's nothing to animate frame-to-frame, just his fall-in position.
 // ---------------------------------------------------------------------------
 
 const bealeBgImage = new Image();
 let bealeBgLoaded = false;
+const bealeMarioImage = new Image();
+let bealeMarioLoaded = false;
+const bealeChestClosedImage = new Image();
+let bealeChestClosedLoaded = false;
+const bealeChestOpenImage = new Image();
+let bealeChestOpenLoaded = false;
+
 function loadBealeAssets() {
   bealeBgImage.onload = () => { bealeBgLoaded = true; };
   bealeBgImage.src = 'assets/beale-street-bg.png';
+  bealeMarioImage.onload = () => { bealeMarioLoaded = true; };
+  bealeMarioImage.src = 'assets/beale-mario.png';
+  bealeChestClosedImage.onload = () => { bealeChestClosedLoaded = true; };
+  bealeChestClosedImage.src = 'assets/chest-closed.png';
+  bealeChestOpenImage.onload = () => { bealeChestOpenLoaded = true; };
+  bealeChestOpenImage.src = 'assets/chest-open.png';
 }
 
 // Ground (top of the sidewalk) as a fraction of canvas height, measured
@@ -18,6 +34,13 @@ function loadBealeAssets() {
 const BEALE_GROUND_Y_FRAC = 0.83;
 const BEALE_MARIO_HEIGHT = 92; // on-screen px - tall enough to read against the
                                 // photo's stone railing/sidewalk scale
+// The closed chest's on-screen height, chosen to look properly sized sitting
+// next to Mario (roughly waist/thigh height on him) - the open chest reuses
+// the exact same px-per-source-px scale factor (not the same *height*) so
+// the two stay physically consistent: the lid swinging up makes the open
+// image taller, which is correct, rather than both being force-fit to one
+// bounding box.
+const BEALE_CHEST_HEIGHT = 48;
 
 function drawBealeBackground(ctx, w, h) {
   if (bealeBgLoaded && bealeBgImage.naturalWidth > 0) {
@@ -46,8 +69,83 @@ function drawBealeBackground(ctx, w, h) {
 
 function bealeGroundY(h) { return h * BEALE_GROUND_Y_FRAC; }
 
+// On-screen draw width Mario/the chest would have at a given height, from
+// their real images' own aspect ratios - used by minigame.js to keep the
+// card grid clear of both without hardcoding a guess at their size that
+// could silently drift out of sync with the actual art. Falls back to a
+// rough guess (matching the old procedural sprite's proportions) if a call
+// somehow lands before the image has loaded.
+function bealeMarioDrawWidth(heightPx) {
+  if (bealeMarioLoaded && bealeMarioImage.naturalWidth > 0) {
+    return bealeMarioImage.naturalWidth * (heightPx / bealeMarioImage.naturalHeight);
+  }
+  return heightPx * 0.6;
+}
+function bealeChestDrawWidth(heightPx) {
+  if (bealeChestClosedLoaded && bealeChestClosedImage.naturalWidth > 0) {
+    return bealeChestClosedImage.naturalWidth * (heightPx / bealeChestClosedImage.naturalHeight);
+  }
+  return heightPx * 1.25;
+}
+
+// Real static Mario art, drawn feet-first at (footX, footY) scaled to
+// heightPx tall - no pose/facing params since he never moves or turns in
+// this scene, just falls straight down and sits. Falls back to the old
+// procedural drawing (below) for the brief window before the image loads.
+function drawBealeMario(ctx, footX, footY, heightPx) {
+  if (bealeMarioLoaded && bealeMarioImage.naturalWidth > 0) {
+    const scale = heightPx / bealeMarioImage.naturalHeight;
+    const w = bealeMarioImage.naturalWidth * scale;
+    // Same reasoning as the backdrop: main.js sets ctx.imageSmoothingEnabled
+    // = false globally for the game's pixel-art sprites, which would
+    // otherwise make this downscale blocky - scope smoothing to just this draw.
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bealeMarioImage, footX - w / 2, footY - heightPx, w, heightPx);
+    ctx.restore();
+  } else {
+    drawBealeMarioProcedural(ctx, footX, footY, heightPx, 'stand', 1);
+  }
+}
+
+// A treasure chest, drawn feet-first at (footX, footY). `closed` selects
+// which real image to draw; `rotation` (radians) and `punchScale` let the
+// caller layer a shake-before-opening wiggle and a pop-open scale-punch on
+// top (see main.js's updateBealeGame 'burst'/'open' handling) without this
+// function needing to know anything about that timing itself. Falls back to
+// the old procedural chest (below) for the brief window before an image loads.
+function drawBealeChest(ctx, footX, footY, closed, rotation = 0, punchScale = 1) {
+  const img = closed ? bealeChestClosedImage : bealeChestOpenImage;
+  const loaded = closed ? bealeChestClosedLoaded : bealeChestOpenLoaded;
+  if (loaded && img.naturalWidth > 0) {
+    // Both chest images share one scale factor (derived from the closed
+    // image's own native size) rather than each being fit to
+    // BEALE_CHEST_HEIGHT independently, so opening the lid makes the chest
+    // taller on screen - correct, physical behavior - instead of the two
+    // images just swapping within an identical bounding box.
+    const scale = BEALE_CHEST_HEIGHT / bealeChestClosedImage.naturalHeight;
+    const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+    ctx.save();
+    ctx.translate(footX, footY);
+    ctx.rotate(rotation);
+    ctx.scale(punchScale, punchScale);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, -w / 2, -h, w, h);
+    ctx.restore();
+  } else {
+    ctx.save();
+    ctx.translate(footX, footY);
+    ctx.rotate(rotation);
+    ctx.scale(punchScale, punchScale);
+    drawTreasureBox(ctx, 0, 0, BEALE_BOX_SCALE, closed ? 0 : 1);
+    ctx.restore();
+  }
+}
+
 // pose: 'stand' | 'walk1' | 'walk2' | 'fall'
-function drawBealeMario(ctx, footX, footY, heightPx, pose, facing = 1) {
+function drawBealeMarioProcedural(ctx, footX, footY, heightPx, pose, facing = 1) {
   const scale = heightPx / 48; // sprite authored in ~48-unit-tall local space
   ctx.save();
   ctx.translate(footX, footY);

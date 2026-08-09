@@ -13,7 +13,14 @@ const FOUND_BUT_FINISHED_MESSAGE =
   "🏁 Level complete!\nYou already found the hidden clue — good luck with the rest of the hunt!";
 
 const MARIO_DRAW_SCALE = 1.5; // native sprite px -> on-screen px
-const BEALE_BOX_SCALE = 2.2;  // treasure-box draw scale in the Beale scene
+const BEALE_BOX_SCALE = 2.2;  // fallback procedural treasure-box draw scale (see drawBealeChest)
+
+// Timing for the chest's post-win sequence (see updateBealeGame's 'burst'
+// branch): the chest starts a shake-in-place wiggle partway through, then
+// "pops" open (image swap + fireworks) at CHEST_POP_MS - about 3s total
+// from the last match, per the requested pacing.
+const BEALE_CHEST_SHAKE_START_MS = 1400;
+const BEALE_CHEST_POP_MS = 3000;
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -44,7 +51,7 @@ const game = {
   pipeAnimTimer: 0,
   flagSlideTimer: 0,
   flagSlideStartY: 0,
-  beale: null,  // Beale scene sub-state: fall/land/bubble intro + walk-to-box
+  beale: null,  // Beale scene sub-state: fall-in, speech bubble, chest shake/pop
   memory: null, // the 20-card memory game state (see minigame.js)
   paused: false,
 };
@@ -416,10 +423,6 @@ function render(dt) {
 
   const inSecretScene = game.state === 'secretRoom' || game.state === 'minigame';
   document.body.classList.toggle('secret-scene', inSecretScene);
-  // The D-pad is normally hidden for the whole Beale scene (card matching is
-  // tap-only) but re-enabled during the brief player-controlled "walk to the
-  // treasure box" sub-phase - see the body.beale-walk rule in style.css.
-  document.body.classList.toggle('beale-walk', inSecretScene && !!game.beale && game.beale.phase === 'walk');
   // #game is styled `image-rendering: pixelated` (see style.css) so the
   // browser's own upscale of the low-res canvas backing store to the actual
   // on-screen size stays crisp for tile/sprite art - but the same forced
@@ -460,16 +463,20 @@ function drawPipeEnterAnim(camX) {
 
 // --- Secret room / minigame rendering ---
 // Sub-phases (game.beale.phase), all drawn over the same photo backdrop:
-//   'fall'   - Mario drops in from the top of the screen (secretRoom state)
-//   'bubble' - he's landed on the left and a speech bubble reads his line;
-//              tapping anywhere dismisses it and starts the grid
+//   'fall'   - Mario AND the closed chest drop in together from the top
+//              (secretRoom state)
+//   'bubble' - both have landed (Mario on the left, chest on the right) and
+//              a speech bubble reads his line; tapping anywhere dismisses
+//              it and starts the grid
 //   'grid'   - the 20-card memory board is live (tap to flip)             \ minigame
-//   'burst'  - winning pair #10 pops the treasure chest, cards scatter    /  state
-//   'walk'   - player walks Mario over to the landed chest
-//   'open'   - chest opens, a white "page" grows to fill the screen, then
-//              hands off to the DOM message overlay with the clue text
-// Mario stays visible in the same spot (where he landed) through 'fall'
-// through 'burst' - he only moves once the 'walk' phase starts.
+//   'burst'  - winning pair #10: cards fly apart from the pile while the   /  state
+//              chest (untouched, still sitting where it landed) shakes in
+//              place, then pops open ~3s later
+//   'open'   - chest is open, a "page" twirls out and grows to fill the
+//              screen, then hands off to the DOM message overlay with the
+//              clue text
+// Mario and the chest both stay fixed in the spots they landed for the
+// entire scene now - neither one ever moves again after 'fall'.
 function renderSecretScene(dt) {
   drawBealeBackground(ctx, VIEW_W, VIEW_H);
   const b = game.beale;
@@ -477,7 +484,8 @@ function renderSecretScene(dt) {
   const groundY = b.groundY;
 
   if (b.phase === 'fall' || b.phase === 'bubble') {
-    drawBealeMario(ctx, b.marioFootX, b.marioFootY, BEALE_MARIO_HEIGHT, b.phase === 'fall' ? 'fall' : 'stand', 1);
+    drawBealeChest(ctx, b.chestFootX, b.chestFootY, true);
+    drawBealeMario(ctx, b.marioFootX, b.marioFootY, BEALE_MARIO_HEIGHT);
     if (b.phase === 'bubble') {
       drawSpeechBubble(ctx, b.marioFootX, b.marioFootY - BEALE_MARIO_HEIGHT, BEALE_SPEECH_TEXT, 280);
     }
@@ -486,7 +494,9 @@ function renderSecretScene(dt) {
 
   if (b.phase === 'grid') {
     drawMemoryGrid(ctx, game.memory);
-    drawBealeMario(ctx, b.marioFootX, groundY, BEALE_MARIO_HEIGHT, 'stand', 1);
+    drawBealeMario(ctx, b.marioFootX, groundY, BEALE_MARIO_HEIGHT);
+    drawBealeChest(ctx, b.chestFootX, groundY, true);
+    drawParticles(0, dt); // per-match confetti bursts (see handleCardTap)
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
     ctx.fillRect(0, VIEW_H - 26, VIEW_W, 26);
     ctx.fillStyle = '#fff';
@@ -498,23 +508,43 @@ function renderSecretScene(dt) {
 
   if (b.phase === 'burst') {
     drawMemoryGrid(ctx, game.memory);
-    drawBealeMario(ctx, b.marioFootX, groundY, BEALE_MARIO_HEIGHT, 'stand', 1);
-    drawTreasureBox(ctx, game.memory.boxX, game.memory.boxY, BEALE_BOX_SCALE, 0);
+    drawBealeMario(ctx, b.marioFootX, groundY, BEALE_MARIO_HEIGHT);
+    drawBealeChest(ctx, b.chestFootX, groundY, !b.chestOpen, bealeChestShakeAngle(b));
+    drawParticles(0, dt); // the chest-pop fireworks (see updateBealeGame)
     return;
   }
 
-  // 'walk' / 'open' - the lid finishes opening by BEALE_CARD_TWIRL_END, i.e.
-  // just before the message card twirls out of it.
-  const lidOpenAmount = b.phase === 'open' ? Math.min(1, b.openT / BEALE_CARD_TWIRL_END) : 0;
-  drawTreasureBox(ctx, game.memory.boxX, groundY, BEALE_BOX_SCALE, lidOpenAmount);
-  const pose = b.phase === 'walk'
-    ? (b.walking ? (Math.floor((b.walkAnimTimer || 0) / 150) % 2 === 0 ? 'walk1' : 'walk2') : 'stand')
-    : 'stand';
-  drawBealeMario(ctx, b.marioFootX, groundY, BEALE_MARIO_HEIGHT, pose, b.marioFacing || 1);
-
-  if (b.phase === 'open' && b.openT > 0) {
-    drawBealeMessageCardOpen(ctx, game.memory.boxX, groundY - 20, b.openT);
+  // 'open'
+  drawMemoryGrid(ctx, game.memory);
+  drawBealeMario(ctx, b.marioFootX, groundY, BEALE_MARIO_HEIGHT);
+  drawBealeChest(ctx, b.chestFootX, groundY, false, 0, bealeChestPunchScale(b));
+  drawParticles(0, dt); // fireworks keep falling/fading as the message twirls out
+  if (b.openT > 0) {
+    drawBealeMessageCardOpen(ctx, b.chestFootX, groundY - 20, b.openT);
   }
+}
+
+// Small side-to-side wiggle while the chest is building up to popping open -
+// frequency and amplitude both ramp up across the shake window so it reads
+// as rising anticipation rather than a flat rattle the whole time.
+function bealeChestShakeAngle(b) {
+  if (!b.chestShaking || b.chestOpen) return 0;
+  const t = Math.min(1, Math.max(0,
+    (b.chestTimer - BEALE_CHEST_SHAKE_START_MS) / (BEALE_CHEST_POP_MS - BEALE_CHEST_SHAKE_START_MS)));
+  const freq = 16 + t * 22;
+  const amp = 0.035 + t * 0.075;
+  return Math.sin((b.chestTimer / 1000) * freq) * amp;
+}
+
+// A brief scale-punch right as the chest pops open, decaying back to normal
+// size over BEALE_CHEST_POP_PUNCH_MS - driven by b.chestPopT rather than
+// b.chestTimer, since the latter stops advancing once 'burst' phase ends
+// (see updateBealeGame's 'open' branch, which ticks chestPopT itself).
+const BEALE_CHEST_POP_PUNCH_MS = 300;
+function bealeChestPunchScale(b) {
+  const t = b.chestPopT || 0;
+  if (t >= BEALE_CHEST_POP_PUNCH_MS) return 1;
+  return 1 + (1 - t / BEALE_CHEST_POP_PUNCH_MS) * 0.18;
 }
 
 // The "message card" that pops the chest open: it twirls out (spinning while
@@ -578,13 +608,21 @@ function updateBealeIntro(dt) {
   const b = game.beale;
   const dtScale = dt / FRAME_MS;
   if (b.phase === 'fall') {
-    b.marioVy += 0.5 * dtScale;
-    b.marioFootY += b.marioVy * dtScale;
-    if (b.marioFootY >= b.groundY) {
-      b.marioFootY = b.groundY;
-      b.marioVy = 0;
+    // Mario and the closed chest drop in together, with identical fall
+    // physics from identical starting heights, so they land at the same
+    // moment - each tracked independently (rather than assuming they always
+    // land in lockstep) so nothing breaks if their start heights/speeds
+    // ever get tuned differently later.
+    if (b.marioFootY < b.groundY) {
+      b.marioVy += 0.5 * dtScale;
+      b.marioFootY = Math.min(b.groundY, b.marioFootY + b.marioVy * dtScale);
+    }
+    if (b.chestFootY < b.groundY) {
+      b.chestVy += 0.5 * dtScale;
+      b.chestFootY = Math.min(b.groundY, b.chestFootY + b.chestVy * dtScale);
+    }
+    if (b.marioFootY >= b.groundY && b.chestFootY >= b.groundY) {
       b.phase = 'bubble';
-      b.phaseTimer = 0;
       Sfx.thud();
     }
   }
@@ -598,28 +636,25 @@ function updateBealeGame(dt) {
   if (b.phase === 'grid') {
     updateMemoryGame(mg, dt);
   } else if (b.phase === 'burst') {
-    const landed = updateTreasureBurst(mg, dt, b.groundY);
-    if (landed) {
-      b.phase = 'walk';
-      b.marioFootX = VIEW_W * 0.16;
-      b.marioFootY = b.groundY;
-      b.marioFacing = 1;
-      b.walking = false;
-      b.walkAnimTimer = 0;
+    updateCardScatter(mg, dt);
+    b.chestTimer += dt;
+    if (!b.chestShaking && b.chestTimer >= BEALE_CHEST_SHAKE_START_MS) {
+      b.chestShaking = true;
     }
-  } else if (b.phase === 'walk') {
-    const speed = 2.6 * (dt / FRAME_MS);
-    if (Input.left) { b.marioFootX -= speed; b.marioFacing = -1; b.walking = true; }
-    else if (Input.right) { b.marioFootX += speed; b.marioFacing = 1; b.walking = true; }
-    else { b.walking = false; }
-    b.marioFootX = Math.max(18, Math.min(VIEW_W - 18, b.marioFootX));
-    b.walkAnimTimer += dt;
-    if (Math.abs(b.marioFootX - mg.boxX) < 26) {
+    if (!b.chestOpen && b.chestTimer >= BEALE_CHEST_POP_MS) {
+      b.chestOpen = true;
+      Sfx.boxOpen();
+      const fx = b.chestFootX, fy = b.groundY;
+      world.spawnFireworks(fx, fy - 40);
+      Sfx.firework();
+      setTimeout(() => { world.spawnFireworks(fx - 25, fy - 65); Sfx.firework(); }, 220);
+      setTimeout(() => { world.spawnFireworks(fx + 25, fy - 55); Sfx.firework(); }, 440);
       b.phase = 'open';
       b.openT = 0;
-      Sfx.boxOpen();
+      b.chestPopT = 0;
     }
   } else if (b.phase === 'open') {
+    b.chestPopT = Math.min(BEALE_CHEST_POP_PUNCH_MS, b.chestPopT + dt);
     b.openT = Math.min(1, b.openT + dt / 650);
     if (b.openT >= 1 && !b.messageShown) {
       b.messageShown = true;
@@ -691,7 +726,7 @@ function handleBealeCanvasTap(clientX, clientY) {
     Sfx.stopMusic();
     Sfx.startMiniGameMusic();
     game.state = 'minigame';
-    game.memory = createMemoryGame(VIEW_W, VIEW_H, game.beale.marioFootX, game.beale.groundY - BEALE_MARIO_HEIGHT);
+    game.memory = createMemoryGame(VIEW_W, VIEW_H, game.beale.marioFootX, game.beale.groundY - BEALE_MARIO_HEIGHT, game.beale.chestFootX);
     game.beale.phase = 'grid';
     return;
   }
@@ -702,7 +737,10 @@ function handleBealeCanvasTap(clientX, clientY) {
   if (won) {
     Sfx.stopMiniGameMusic();
     game.beale.phase = 'burst';
-    startTreasureBurst(game.memory, VIEW_W, VIEW_H); // plays the celebration cue
+    game.beale.chestTimer = 0;
+    startCardScatter(game.memory); // plays the celebration cue; chest itself
+                                    // shakes/pops on its own timer, see
+                                    // updateBealeGame's 'burst' branch
   }
 }
 
@@ -747,11 +785,14 @@ function update(dt) {
         marioFootX: VIEW_W * 0.16,
         marioFootY: -20,
         marioVy: 0,
-        marioFacing: 1,
+        chestFootX: VIEW_W * 0.82,
+        chestFootY: -20,
+        chestVy: 0,
         groundY: bealeGroundY(VIEW_H),
-        phaseTimer: 0,
-        walking: false,
-        walkAnimTimer: 0,
+        chestTimer: 0,
+        chestShaking: false,
+        chestOpen: false,
+        chestPopT: 0,
         openT: 0,
         messageShown: false,
       };

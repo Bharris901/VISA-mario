@@ -47,8 +47,9 @@ html, body {
 .hud-mid { flex: 1; text-align: center; }
 .hud-right { display: flex; gap: 6px; }
 
-/* Hide the main-level HUD/D-pad/JUMP while inside the hidden Beale St scene -
-   card matching is direct-tap, not a control-button interaction. */
+/* Hide the main-level HUD/D-pad/JUMP/DESCEND for the whole hidden Beale St
+   scene - Mario and the treasure chest are both fixed in place there (card
+   matching is direct-tap), so no player movement controls are ever needed. */
 body.secret-scene #hud,
 body.secret-scene #lives-hud {
   display: none;
@@ -59,12 +60,6 @@ body.secret-scene #btn-descend,
 body.secret-scene #btn-jump {
   visibility: hidden;
   pointer-events: none;
-}
-/* ...except the D-pad is re-enabled during the brief "walk Mario to the
-   treasure box" sub-phase, which needs left/right movement. */
-body.secret-scene.beale-walk #dpad-zone {
-  visibility: visible;
-  pointer-events: auto;
 }
 
 #lives-hud {

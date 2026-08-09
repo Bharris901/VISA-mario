@@ -8,6 +8,18 @@ Shell, a foreground stone balustrade/plaza). Drawn with a "cover" fit in
 `drawBealeBackground()` (`js/secretRoom.js`) — it's cropped to fill the
 canvas regardless of aspect ratio, never letterboxed/stretched.
 
+## `beale-mario.png` / `chest-closed.png` / `chest-open.png`
+
+Real static art for Mario and the treasure chest in the Beale scene, used
+as-is (never re-touched/re-pixelated/edited), only scaled down to fit.
+Drawn by `drawBealeMario()`/`drawBealeChest()` (`js/secretRoom.js`) at
+`BEALE_MARIO_HEIGHT`/`BEALE_CHEST_HEIGHT` respectively - the chest's two
+images share one scale factor (derived from `chest-closed.png`'s own native
+size) rather than each being independently fit to the same target height,
+so opening the lid correctly makes the chest taller on screen instead of
+the two images just swapping within an identical box. Neither Mario nor
+the chest ever animates a pose or moves once landed in this scene.
+
 ## Memory-game card icons
 
 The 20-card matching game has 10 icon pairs, all real user-provided artwork,

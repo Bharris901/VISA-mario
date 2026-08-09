@@ -162,13 +162,19 @@ derived from each sprite's actual canvas dimensions.
 
 **Secret room + memory-matching mini-game.** `secretRoom.js` draws the Beale
 Street scene's backdrop as a real photo (`assets/beale-street-bg.png`, "cover"
--fit via `drawBealeBackground()`) plus a *procedurally* drawn (not baked
-pixel-sprite) big Mario and word-wrapped speech bubble — `drawBealeMario()`
-and `drawSpeechBubble()`. Mario is drawn much larger here (`BEALE_MARIO_HEIGHT
-= 92`, vs. `MARIO_DRAW_SCALE` elsewhere) and with smooth arc/roundRect
-primitives rather than a blown-up tiny sprite, specifically so he reads
-clearly against the photo's realistic proportions (the stone
-railing/sidewalk in the image is the scale reference).
+-fit via `drawBealeBackground()`), plus real static images for Mario
+(`assets/beale-mario.png`) and the treasure chest, closed/open
+(`assets/chest-{closed,open}.png`) via `drawBealeMario()`/`drawBealeChest()`.
+None of the three ever move, animate frame-to-frame, or change pose in this
+scene - Mario has no walk/fall/stand poses here at all (unlike his usual
+baked pixel sprite elsewhere in the game) since he's a single static image
+that just falls in and sits; the chest only ever swaps wholesale between its
+closed and open image. `BEALE_MARIO_HEIGHT = 92` and `BEALE_CHEST_HEIGHT =
+48` set their on-screen scale (tall enough to read against the photo's
+stone-railing/sidewalk proportions); `bealeMarioDrawWidth()`/
+`bealeChestDrawWidth()` expose their actual on-screen width at a given
+height (from each image's own aspect ratio) for `minigame.js`'s grid layout
+to query rather than hardcoding a guess (see below).
 
 **Gotcha already hit once: real (non-pixel-art) images need smoothing
 re-enabled, twice.** `main.js` sets `ctx.imageSmoothingEnabled = false`
@@ -176,100 +182,112 @@ globally, and `style.css` sets `#game { image-rendering: pixelated }`, both
 so the game's pixel-art tiles/sprites stay crisp - but the same two settings
 make any *photo or real image* drawn into the canvas look blocky/aliased
 when scaled, since nothing ever re-enabled smoothing for it. Every real
-image draw (the Beale backdrop in `drawBealeBackground()`, and the five real
-card-icon photos below) wraps its `drawImage()` call in
-`save()`/`imageSmoothingEnabled = true` + `imageSmoothingQuality = 'high'`/
-`restore()` so just that call gets smooth interpolation - smoothing has no
-effect on path/arc/roundRect fills, so nothing else needs to change. `render()`
-in `main.js` also toggles `canvas.style.imageRendering` between `'pixelated'`
-(normal gameplay) and `'auto'` (the whole Beale scene, which never draws any
-pixel-art tiles) so the *browser's* upscale of the canvas element to its
-on-screen size is smooth too - the per-`drawImage` fix alone isn't enough,
-since that CSS property scales the whole already-rendered canvas afterward
-regardless of how any individual draw call was done. Apply both halves of
-this pattern to any future real-image asset added to the canvas.
+image draw (the Beale backdrop, Mario, the chest, and the ten real card-icon
+photos below) wraps its `drawImage()` call in `save()`/`imageSmoothingEnabled
+= true` + `imageSmoothingQuality = 'high'`/`restore()` so just that call
+gets smooth interpolation - smoothing has no effect on path/arc/roundRect
+fills, so nothing else needs to change. `render()` in `main.js` also toggles
+`canvas.style.imageRendering` between `'pixelated'` (normal gameplay) and
+`'auto'` (the whole Beale scene, which never draws any pixel-art tiles) so
+the *browser's* upscale of the canvas element to its on-screen size is
+smooth too - the per-`drawImage` fix alone isn't enough, since that CSS
+property scales the whole already-rendered canvas afterward regardless of
+how any individual draw call was done. Apply both halves of this pattern to
+any future real-image asset added to the canvas.
 
 `minigame.js` implements the 20-card (10-pair) memory match itself:
 `CARD_ICONS` + `drawCardIcon()` (a 10-case switch, one Memphis icon per
 case — University of Memphis, Grizzlies, Redbirds, Elvis, the Pyramid, the
 Peabody duck, a Beale St. guitar, the M bridge, the Lorraine Motel sign, St.
-Jude) is the single place to change icon art. All ten now have real
-user-provided artwork rather than procedural drawing — `CARD_PHOTOS` maps
-every id to its `assets/card-*.png` file, `loadCardPhotos()` (called from
-`boot()`) preloads them, and `drawCardIcon()` draws whichever's ready
-"contain"-fit (whole image visible, no cropping, unlike the backdrop's
-"cover" fit) with smoothing scoped on for just that call per the gotcha
-above; the original procedural switch-case is kept in full and now only
-ever renders as a brief fallback for an icon whose image hasn't finished
-loading yet.
-`createMemoryGame()`/
-`handleCardTap()`/`updateMemoryGame()` run the flip/match/mismatch logic. A
-matched pair doesn't stay put or stack on itself — both cards slide to a
-shared `mg.pileX`/`mg.pileY` spot (a small deterministic per-pair jitter
-keeps it looking like a messy stack rather than one aligned block), so every
-match grows the same pile. Mario stays visible in place, standing where he
-landed, through the whole `'fall'` → `'bubble'` → `'grid'` → `'burst'`
-sequence (he only moves once `'walk'` starts) — `createMemoryGame()` takes
-his foot/head position and both shifts the grid's `startX` right just far
-enough to clear him *and* plants the pile directly above his head
-(`pileY = marioTopY - cardH - 10`), so the pile visibly builds up over him
-rather than off in a margin unrelated to anything on screen.
-`startTreasureBurst()`/`updateTreasureBurst()` run the physical
-scatter-the-cards-and-arc-the-chest-to-the-ground simulation once the 10th
-pair is found — the chest's start position is that same pile spot, so it
-visibly bursts out from behind the pile rather than from empty space.
-**Gotcha already hit once:** since the chest now starts near the ground
-already (at the pile, not screen-center), gravity alone would bring it back
-down to the ground well before it reached the right-side landing spot,
-stopping it short - `updateTreasureBurst()` only reports "landed" once the
-chest has *both* reached its target X *and* touched the ground, sliding
-along the ground the rest of the way if it touches down early.
+Jude) is the single place to change icon art. All ten have real
+user-provided artwork — `CARD_PHOTOS` maps every id to its
+`assets/card-*.png` file, `loadCardPhotos()` (called from `boot()`) preloads
+them, and `drawCardIcon()` draws whichever's ready "contain"-fit (whole
+image visible, no cropping, unlike the backdrop's "cover" fit) with
+smoothing scoped on per the gotcha above; the original procedural
+switch-case is kept in full and now only ever renders as a brief fallback
+for an icon whose image hasn't finished loading yet.
+
+Mario (left) and the chest (right) both land in fixed spots and never move
+again for the rest of the mini-game, so the card grid has to fit in the
+strip between them without ever overlapping either - **gotcha already hit
+once:** a hardcoded 5-col grid sized/centered independently of where Mario
+and the chest actually landed visibly overlapped the chest once the chest
+became a fixed real image instead of something that only appeared later.
+`createMemoryGame()` now takes Mario's and the chest's actual positions and
+*derives* the grid: 4 columns × 5 rows (still 20 cards, just narrower/taller
+than the old 5×4), with card size computed from however much width is
+actually left between `bealeMarioDrawWidth()`'s/`bealeChestDrawWidth()`'s
+clearances - never a hardcoded size that could silently start clipping one
+of them if a position or asset size ever changes. The pile of matched cards
+still builds up directly above Mario's head (`pileY = marioTopY - cardH -
+10`) via `handleCardTap()`'s stacking logic in the same function.
 
 This is orchestrated as a sub-state-machine layered under the existing
 top-level `game.state` values, so the top-level switch in `main.js` didn't
 need new cases: `game.beale.phase` walks `'fall' → 'bubble' → 'grid' →
-'burst' → 'walk' → 'open'` while `game.state` stays `'secretRoom'` for the
+'burst' → 'open'` while `game.state` stays `'secretRoom'` for the
 fall-in/speech-bubble intro, then `'minigame'` for everything from the card
 grid through the chest opening (`updateBealeIntro()`/`updateBealeGame()` in
-`main.js` drive those two phases-of-phases respectively). The `'bubble'`
-phase has no timer — it waits indefinitely; a tap anywhere on screen (not
-just on Mario) dismisses the speech bubble and starts the grid, so
-`updateBealeIntro()`'s `'bubble'` branch is a no-op and the actual
+`main.js` drive those two phases-of-phases respectively). `'fall'` animates
+*both* Mario and the chest dropping in from the top together (independent
+fall physics per object, rather than assuming they always land in lockstep,
+even though they currently share identical start height/speed and so do
+land at the same instant) - `Sfx.thud()` fires once both have touched down.
+The `'bubble'` phase has no timer — it waits indefinitely; a tap anywhere on
+screen (not just on Mario) dismisses the speech bubble and starts the grid,
+so `updateBealeIntro()`'s `'bubble'` branch is a no-op and the actual
 transition lives in `handleBealeCanvasTap()`. Card taps (and that
 bubble-dismissing tap) are handled directly off a `canvas`
 `click`/`touchstart` listener (`handleBealeCanvasTap()`, wired in `boot()`
 via `initBealeCardInput()`) rather than through the `Input` object, since
 tapping is a fundamentally different interaction than "hold a
-direction/button" — coordinates are rescaled from
-client-space to the canvas's internal 480×288 space via
-`canvasCoordsFromClient()`, which any future canvas-tap interaction should
-reuse. **Gotcha already hit once:** naively scaling by
-`rect.width`/`rect.height` from `getBoundingClientRect()` is *not* enough,
-because `#game` is styled `object-fit: contain` (see `style.css`) — whenever
-the on-screen aspect ratio doesn't exactly match 480×288 the canvas is
-letterboxed, so its element box is bigger than the actual visible/scaled
-bitmap inside it, and every tap is off by however wide the bars are (worst
-right at the edges — this is exactly why the leftmost/rightmost card columns
-were the least reliable to tap). `canvasCoordsFromClient()` computes the
-letterbox offset itself before rescaling.
+direction/button" — coordinates are rescaled from client-space to the
+canvas's internal 480×288 space via `canvasCoordsFromClient()`, which any
+future canvas-tap interaction should reuse. **Gotcha already hit once:**
+naively scaling by `rect.width`/`rect.height` from `getBoundingClientRect()`
+is *not* enough, because `#game` is styled `object-fit: contain` (see
+`style.css`) — whenever the on-screen aspect ratio doesn't exactly match
+480×288 the canvas is letterboxed, so its element box is bigger than the
+actual visible/scaled bitmap inside it, and every tap is off by however wide
+the bars are (worst right at the edges — this is exactly why the
+leftmost/rightmost card columns were the least reliable to tap).
+`canvasCoordsFromClient()` computes the letterbox offset itself before
+rescaling.
 
-The 'walk' phase is the one moment the on-screen D-pad
-reappears inside the secret scene (`body.beale-walk` in `style.css` overrides
-the otherwise-blanket `body.secret-scene` D-pad/JUMP/DESCEND hide) so the
-player can steer Mario to the landed chest with ordinary
-left/right — `updateBealeGame()`'s `'walk'` branch is deliberately a tiny
-bespoke horizontal-only mover, not a call into `updatePlayer()`, since nothing
-about jumping/gravity/collision applies in this scene. The final "chest
-opens, message pops out" beat (`drawBealeMessageCardOpen()`, `'open'` phase,
-`b.openT` 0→1) is two canvas-drawn sub-stages, not an attempt to keep the
-whole thing on canvas forever: first a small white card twirls (spins +
-grows) from the chest to screen center (`openT` 0→`BEALE_CARD_TWIRL_END`),
-then it grows the rest of the way to fill the screen while its fill color
-crossfades from card-white to the DOM `#message-overlay`'s own near-black
-background — so the handoff to the real `UI.showMessage()` overlay (fired
-the instant `openT` reaches 1) reads as one continuous motion with no color
-flash, while the actual clue text still gets to live in the DOM overlay
-where it stays readable/reflowable.
+Finding the 10th pair moves to `'burst'`: the matched cards fly apart from
+the pile (`startCardScatter()`/`updateCardScatter()` in `minigame.js` - pure
+card physics now, no chest involved) while the chest - untouched, still
+sitting exactly where it landed - shakes with rising intensity
+(`bealeChestShakeAngle()`, a sine wiggle whose frequency/amplitude both ramp
+up) starting at `BEALE_CHEST_SHAKE_START_MS` and "pops" open (image swap +
+a brief scale-punch via `bealeChestPunchScale()`/`b.chestPopT`, plus real
+fireworks via the same `world.spawnFireworks()`/staggered-`setTimeout`
+pattern `finishFlagpole()` uses) at `BEALE_CHEST_POP_MS` - about 3s total
+from the last match, tuned to that pacing rather than tied to any physical
+event finishing (there's no more "wait for the chest to land/arrive"
+condition now that it's fixed in place the whole time). **Gotcha already hit
+once:** `renderSecretScene()` never called `drawParticles()` at all, so
+*no* particle effect - not the per-match confetti bursts, not these
+fireworks - was ever actually visible in this scene despite the code
+spawning them correctly; every phase branch that can have live particles now
+calls `drawParticles(0, dt)` (camX=0 since this scene has no camera
+scroll) itself.
+
+The final "chest opens, message pops out" beat
+(`drawBealeMessageCardOpen()`, `'open'` phase, `b.openT` 0→1) is two
+canvas-drawn sub-stages, not an attempt to keep the whole thing on canvas
+forever: first a small white card twirls (spins + grows) from the chest to
+screen center (`openT` 0→`BEALE_CARD_TWIRL_END`), then it grows the rest of
+the way to fill the screen while its fill color crossfades from card-white
+to the DOM `#message-overlay`'s own near-black background — so the handoff
+to the real `UI.showMessage()` overlay (fired the instant `openT` reaches 1)
+reads as one continuous motion with no color flash, while the actual clue
+text still gets to live in the DOM overlay where it stays readable/
+reflowable. Because Mario and the chest are both fixed the whole game now,
+there's no player-controlled "walk to the chest" sub-phase anymore (there
+used to be one) and so no D-pad re-enabling inside this scene at all - the
+D-pad/JUMP/DESCEND stay hidden for the *entire* secret scene, no exceptions.
 
 **Audio (`js/audio.js`).** A single `Sfx` IIFE wraps WebAudio: one-shot SFX
 via `tone()`/`slide()`, plus a lookahead-scheduled background music loop

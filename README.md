@@ -78,26 +78,27 @@ since dying never actually ends play).
 - The secret pipe is a normal-looking green pipe in roughly the last
   quarter of the level. Press "down" while standing on top of it to enter
   (no visual hint marks it as special, by design).
-- Mario falls in from the top of the screen and lands on the left, in
-  front of the Beale Street skyline, where he stays for the rest of the
-  mini-game. A speech bubble asks for help matching the cards and ends
-  with "Tap to begin" — tapping anywhere starts the grid (no timer). A
-  peppy ~15s music loop (distinct from the main level's theme, which
-  pauses for it) plays for as long as the grid is up.
+- Mario and a closed treasure chest both fall in from the top of the
+  screen together and land - Mario on the left, the chest on the right,
+  in front of the Beale Street skyline - and neither one moves again for
+  the rest of the mini-game. A speech bubble asks for help matching the
+  cards and ends with "Tap to begin" — tapping anywhere starts the grid
+  (no timer). A peppy ~15s music loop (distinct from the main level's
+  theme, which pauses for it) plays for as long as the grid is up.
 - The 20-card grid (10 pairs of Memphis icons — University of Memphis,
   Grizzlies, Redbirds, Elvis, the Pyramid, the Peabody duck, a Beale
   Street guitar, the M bridge, the Lorraine Motel sign, St. Jude) fades
-  in next to Mario. Tap any two cards to flip them; a match sends both
-  cards to a pile that builds up just above Mario's head, with a little
-  celebration burst, a mismatch flips both back over. Keep going —
-  unlimited attempts, no penalty — until all 10 pairs are found.
-- Finding the last pair stops the mini-game music, plays a short
-  celebration cue, and bursts a treasure chest out from behind the pile,
-  scattering the cards; the chest lands on the ground on the right. The
-  d-pad reappears just for this moment so the player can walk Mario over
-  to it. Reaching the chest opens it; a message card twirls out and grows
-  to fill the screen, becoming the clue message. The main level's music
-  resumes once the player continues.
+  in between Mario and the chest. Tap any two cards to flip them; a
+  match sends both cards to a pile that builds up just above Mario's
+  head, with a little celebration burst, a mismatch flips both back
+  over. Keep going — unlimited attempts, no penalty — until all 10 pairs
+  are found.
+- Finding the last pair stops the mini-game music and scatters the
+  matched cards apart in a burst of confetti, while the chest - still
+  sitting exactly where it landed - starts to shake. About 3 seconds
+  later it pops open with real fireworks and a message card twirls out
+  of it, growing to fill the screen and becoming the clue message. The
+  main level's music resumes once the player continues.
 - On winning, the clue message is shown, then play resumes right back at
   the pipe so the player can continue to the flagpole.
 - Reaching the flagpole **without ever finding/winning the secret game**

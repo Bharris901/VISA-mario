@@ -1,9 +1,10 @@
 // ---------------------------------------------------------------------------
 // The Beale Street bonus game: a classic 20-card memory match (10 pairs).
-// Cards are drawn procedurally (not baked pixel sprites) so icon art stays
-// crisp at whatever card size the layout needs. Winning triggers a treasure
-// chest sequence (js/main.js owns that state machine; this file owns the
-// card grid + the physical burst/scatter simulation).
+// Cards are drawn with real icon photos (a procedural fallback below covers
+// the brief window before those load). Winning triggers a treasure chest
+// sequence (js/main.js owns that state machine and the chest itself, which
+// lives in js/secretRoom.js as a real static image; this file just owns the
+// card grid + the cards' own scatter-apart celebration).
 // ---------------------------------------------------------------------------
 
 const CARD_ICONS = ['memphis', 'grizzlies', 'redbirds', 'elvis', 'pyramid', 'duck', 'guitar', 'bridge', 'lorraine', 'stjude'];
@@ -224,19 +225,30 @@ function drawCardFace(ctx, x, y, w, h, iconId) {
   drawCardIcon(ctx, iconId, x + w / 2, y + h / 2, Math.min(w, h) * 0.82);
 }
 
-// marioFootX/marioTopY: where Mario is standing (he stays visible in place
-// for the whole mini-game, not just the fall-in intro) - the grid shifts
-// right just enough to clear him, and the pile of matched cards builds up
-// just above his head.
-function createMemoryGame(viewW, viewH, marioFootX, marioTopY) {
+// marioFootX/marioTopY: where Mario is standing; chestFootX: where the
+// treasure chest is sitting. Both are fixed for the entire mini-game now
+// (neither one moves), so the grid has to fit in the strip between them -
+// 4 columns x 5 rows (still 20 cards, just taller/narrower than a 5x4 grid)
+// with a card size *derived* from however much width is actually available
+// between Mario and the chest, rather than a hardcoded size that could
+// silently start overlapping one of them if either's position/art ever
+// changes. The matched-card pile still builds up just above Mario's head.
+function createMemoryGame(viewW, viewH, marioFootX, marioTopY, chestFootX) {
   const deck = shuffleDeck([...CARD_ICONS, ...CARD_ICONS]);
-  const cols = 5, rows = 4;
+  const cols = 4, rows = 5;
   const gap = 6;
-  const cardW = 58, cardH = 44;
+
+  const marioClearance = marioFootX + bealeMarioDrawWidth(BEALE_MARIO_HEIGHT) / 2 + 14;
+  const chestClearance = chestFootX - bealeChestDrawWidth(BEALE_CHEST_HEIGHT) / 2 - 14;
+  const availableW = Math.max(140, chestClearance - marioClearance);
+
+  const maxCardW = Math.floor((availableW - (cols - 1) * gap) / cols);
+  const cardW = Math.max(30, Math.min(58, maxCardW));
+  const cardH = Math.round(cardW * (44 / 58)); // keep the original card's aspect ratio
+
   const gridW = cols * cardW + (cols - 1) * gap;
   const gridH = rows * cardH + (rows - 1) * gap;
-  const marioClearance = marioFootX + cardW / 2 + 14;
-  const startX = Math.max((viewW - gridW) / 2, marioClearance);
+  const startX = marioClearance + (availableW - gridW) / 2; // centered in the available strip
   const startY = (viewH - gridH) / 2 + 6;
   const cards = deck.map((icon, i) => {
     const col = i % cols, row = Math.floor(i / cols);
@@ -248,15 +260,13 @@ function createMemoryGame(viewW, viewH, marioFootX, marioTopY) {
     };
   });
   // Where matched pairs pile up: directly above Mario's head, with a small
-  // gap so the pile never visually touches him - the treasure chest gets a
-  // fixed spot to burst out from behind once the last pair is found.
+  // gap so the pile never visually touches him.
   const pileX = marioFootX - cardW / 2;
   const pileY = marioTopY - cardH - 10;
   return {
     cards, cardW, cardH,
     flippedIndices: [], mismatchTimer: 0, matchesFound: 0,
     pileX, pileY,
-    boxX: 0, boxY: 0, boxVx: 0, boxVy: 0, boxLanded: false, boxTargetX: viewW * 0.82,
   };
 }
 
@@ -328,7 +338,13 @@ function updateMemoryGame(mg, dt) {
   });
 }
 
-function startTreasureBurst(mg, viewW, viewH) {
+// The 10th match found: cards fly apart from the pile for a celebratory
+// moment. The treasure chest itself is a fixed real image sitting on the
+// right the whole game now (see js/secretRoom.js's drawBealeChest and
+// js/main.js's updateBealeGame 'burst' handling for its own shake/pop-open
+// sequence) - it no longer physically bursts out of/travels from the pile,
+// so this only ever touches the cards.
+function startCardScatter(mg) {
   mg.cards.forEach(c => {
     const angle = Math.random() * Math.PI * 2;
     const speed = 2 + Math.random() * 3;
@@ -336,48 +352,20 @@ function startTreasureBurst(mg, viewW, viewH) {
     c.vy = Math.sin(angle) * speed - 2;
     c.vrot = (Math.random() - 0.5) * 0.3;
   });
-  // The chest starts right at the card pile (all 20 cards end up clustered
-  // there once the 10th pair matches) so it visibly bursts out from behind
-  // the pile, then arcs over to land on the ground on the right.
-  mg.boxX = mg.pileX + mg.cardW / 2; mg.boxY = mg.pileY + mg.cardH / 2 - 8;
-  mg.boxVx = 3.0; mg.boxVy = -3.4;
-  mg.boxLanded = false;
   Sfx.treasureBurst();
 }
 
-function updateTreasureBurst(mg, dt, groundY) {
+function updateCardScatter(mg, dt) {
   const dtScale = dt / 16.67;
   mg.cards.forEach(c => {
     c.x += c.vx * dtScale; c.y += c.vy * dtScale; c.vy += 0.16 * dtScale;
     c.rot = (c.rot || 0) + c.vrot * dtScale;
   });
-  if (!mg.boxLanded) {
-    // X (reaching the target spot on the right) and Y (falling to the
-    // ground) are resolved independently, and "landed" only fires once
-    // *both* are done - not as soon as gravity happens to bring it down.
-    // The chest now bursts from the card pile (near the left edge, close to
-    // ground level already) rather than screen-center, so the vertical drop
-    // alone is short; if landing were gated on Y only, the chest would touch
-    // down mid-flight, well short of the intended right-side spot, and just
-    // stop there instead of continuing over.
-    if (mg.boxY < groundY) {
-      mg.boxVy += 0.22 * dtScale;
-      mg.boxY += mg.boxVy * dtScale;
-      if (mg.boxY >= groundY) { mg.boxY = groundY; mg.boxVy = 0; }
-    }
-    if (mg.boxX < mg.boxTargetX) {
-      mg.boxX += mg.boxVx * dtScale;
-      if (mg.boxX >= mg.boxTargetX) { mg.boxX = mg.boxTargetX; mg.boxVx = 0; }
-    }
-    if (mg.boxY >= groundY && mg.boxX >= mg.boxTargetX) {
-      mg.boxLanded = true;
-      Sfx.thud();
-      return true; // just landed
-    }
-  }
-  return false;
 }
 
+// The original procedural treasure chest - now only ever used as a loading
+// fallback from drawBealeChest() (js/secretRoom.js) for the brief window
+// before the real chest-open/chest-closed images have loaded.
 function drawTreasureBox(ctx, cx, footY, scale, openAmount) {
   ctx.save();
   ctx.translate(cx, footY);
