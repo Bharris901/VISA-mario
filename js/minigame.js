@@ -8,15 +8,21 @@
 
 const CARD_ICONS = ['memphis', 'grizzlies', 'redbirds', 'elvis', 'pyramid', 'duck', 'guitar', 'bridge', 'lorraine', 'stjude'];
 
-// Real user-provided artwork for 5 of the 10 icons (the other 5 stay
-// procedurally drawn below). These files are used as-is - never re-touched,
-// re-pixelated, or otherwise edited - just scaled down to fit the card.
+// Real user-provided artwork for all 10 icons. These files are used as-is
+// - never re-touched, re-pixelated, or otherwise edited - just scaled down
+// to fit the card. (The procedural drawing below predates this art and now
+// only ever renders as a brief fallback while an image is still loading.)
 const CARD_PHOTOS = {
-  elvis: 'assets/card-elvis.png',
+  memphis: 'assets/card-memphis.png',
   grizzlies: 'assets/card-grizzlies.png',
+  redbirds: 'assets/card-redbirds.png',
+  elvis: 'assets/card-elvis.png',
+  pyramid: 'assets/card-pyramid.png',
+  duck: 'assets/card-duck.png',
   guitar: 'assets/card-guitar.png',
-  lorraine: 'assets/card-lorraine.png',
   bridge: 'assets/card-bridge.png',
+  lorraine: 'assets/card-lorraine.png',
+  stjude: 'assets/card-stjude.png',
 };
 const cardPhotoImages = {};
 const cardPhotoLoaded = {};
@@ -38,12 +44,12 @@ function shuffleDeck(arr) {
   return arr;
 }
 
-// Original pixel-art interpretations of each Memphis icon (not traced from
-// any source image - hand-drawn from general knowledge of each mark) drawn
-// with canvas primitives into a size x size box centered at (cx, cy). Five
-// of the ten ids (see CARD_PHOTOS above) instead draw the real provided
-// artwork once it's loaded - the procedural version below still renders as
-// a brief fallback for those five while the image loads.
+// Original pixel-art interpretations of each Memphis icon, hand-drawn with
+// canvas primitives into a size x size box centered at (cx, cy). Now that
+// every id has real provided artwork (see CARD_PHOTOS above), this only
+// ever renders as a brief fallback for an icon whose image hasn't finished
+// loading yet - kept in full rather than deleted, in case any future icon
+// is ever added without source art of its own.
 function drawCardIcon(ctx, id, cx, cy, size) {
   if (CARD_PHOTOS[id] && cardPhotoLoaded[id]) {
     const img = cardPhotoImages[id];

@@ -10,20 +10,26 @@ canvas regardless of aspect ratio, never letterboxed/stretched.
 
 ## Memory-game card icons
 
-The 20-card matching game has 10 icon pairs. Five are real user-provided
-artwork, used as-is (never re-touched/re-pixelated/edited) and only scaled
-down to fit the card:
+The 20-card matching game has 10 icon pairs, all real user-provided artwork,
+used as-is (never re-touched/re-pixelated/edited) and only scaled down to
+fit the card:
 
-- `card-elvis.png`
+- `card-memphis.png` (University of Memphis)
 - `card-grizzlies.png`
+- `card-redbirds.png`
+- `card-elvis.png`
+- `card-pyramid.png`
+- `card-duck.png` (Peabody Hotel duck)
 - `card-guitar.png`
-- `card-lorraine.png`
-- `card-bridge.png`
+- `card-bridge.png` (Hernando de Soto / M bridge)
+- `card-lorraine.png` (Lorraine Motel sign)
+- `card-stjude.png`
 
 These are loaded by `loadCardPhotos()` and drawn "contain"-fit (whole image
 visible, no cropping) in `drawCardIcon()` (`js/minigame.js`), which maps
-each `CARD_PHOTOS` id to its file. The other five (University of Memphis,
-Redbirds, the Pyramid, the Peabody duck, St. Jude) don't have source art and
-stay drawn procedurally with canvas primitives — same function, the `switch`
-statement's default path. To swap a procedural icon for real artwork later,
-add it to `CARD_PHOTOS` the same way as the five above.
+each `CARD_PHOTOS` id to its file. `drawCardIcon()` also still has the
+original procedural (canvas-primitive) art for all 10 icons, kept solely as
+a brief fallback for whichever image hasn't finished loading yet - not
+normally visible once all 10 files have loaded. To add art for some future
+new icon that doesn't have a source image, give it a `case` in that
+function's `switch` statement instead of a `CARD_PHOTOS` entry.

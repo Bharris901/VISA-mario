@@ -190,18 +190,18 @@ regardless of how any individual draw call was done. Apply both halves of
 this pattern to any future real-image asset added to the canvas.
 
 `minigame.js` implements the 20-card (10-pair) memory match itself:
-`CARD_ICONS` + `drawCardIcon()` (a 10-case switch, one Memphis icon per case
-— University of Memphis, Grizzlies, Redbirds, Elvis, the Pyramid, the
+`CARD_ICONS` + `drawCardIcon()` (a 10-case switch, one Memphis icon per
+case — University of Memphis, Grizzlies, Redbirds, Elvis, the Pyramid, the
 Peabody duck, a Beale St. guitar, the M bridge, the Lorraine Motel sign, St.
-Jude) is the single place to change icon art. Five of the ten (Grizzlies,
-Elvis, guitar, bridge, Lorraine Motel sign) are real user-provided artwork
-rather than procedural drawing — `CARD_PHOTOS` maps those ids to
-`assets/card-*.png` files, `loadCardPhotos()` (called from `boot()`)
-preloads them, and `drawCardIcon()` draws whichever's ready "contain"-fit
-(whole image visible, no cropping, unlike the backdrop's "cover" fit) with
-smoothing scoped on for just that call per the gotcha above; the procedural
-switch-case still covers the other five ids, and also serves as the brief
-fallback for the five photo ids before their image has loaded.
+Jude) is the single place to change icon art. All ten now have real
+user-provided artwork rather than procedural drawing — `CARD_PHOTOS` maps
+every id to its `assets/card-*.png` file, `loadCardPhotos()` (called from
+`boot()`) preloads them, and `drawCardIcon()` draws whichever's ready
+"contain"-fit (whole image visible, no cropping, unlike the backdrop's
+"cover" fit) with smoothing scoped on for just that call per the gotcha
+above; the original procedural switch-case is kept in full and now only
+ever renders as a brief fallback for an icon whose image hasn't finished
+loading yet.
 `createMemoryGame()`/
 `handleCardTap()`/`updateMemoryGame()` run the flip/match/mismatch logic. A
 matched pair doesn't stay put or stack on itself — both cards slide to a
