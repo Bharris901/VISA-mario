@@ -311,7 +311,13 @@ function drawLevel(camX) {
       if (!spr) continue;
       const x = col * TILE - camX;
       const y = row * TILE;
-      if (isPipeCap(ch) || isPipeBodyLeft(ch)) {
+      if (isPipeCap(ch)) {
+        // The cap sprite is baked wider than the 2 tile columns it sits on
+        // and overhangs both sides slightly (a little lip ledge, like the
+        // reference art) - purely visual, the underlying tile grid/collision
+        // are still just the normal 2-wide cap columns.
+        drawSprite(spr, x - PIPE_CAP_OVERHANG, y, PIPE_CAP_W, TILE);
+      } else if (isPipeBodyLeft(ch)) {
         drawSprite(spr, x, y, TILE * 2, TILE);
       } else {
         drawSprite(spr, x, y, TILE, TILE);

@@ -226,6 +226,18 @@ exact same sprites as a normal pipe (only the tile *characters* differ, not
 the art), so the "must look identical, by design" invariant holds
 automatically - verified visually side-by-side after this redesign.
 
+The cap also overhangs the body by `PIPE_CAP_OVERHANG` (4) px on each side
+- a little lip ledge, matching the reference art - which is why it's baked
+at `PIPE_CAP_W` (56, wider than the body's 48) rather than sharing one width
+with the body: `PIPE_CAP_BANDS` (`widenOutermostBands()`) reuses the body's
+`PIPE_BANDS` widened only at the two outer bands to absorb the extra width,
+so the same band pattern lines up in the middle. This is purely a wider
+*sprite*, not a wider *tile* - `drawLevel()` (`main.js`) draws the cap
+shifted left by the overhang and wider by twice the overhang, while the
+underlying tile grid/collision (`isSolid()`, entry detection) still only
+ever see the normal 2-tile-wide cap columns, so it doesn't affect gameplay,
+just the pixels drawn on top.
+
 **Secret room + memory-matching mini-game.** `secretRoom.js` draws the Beale
 Street scene's backdrop as a real photo (`assets/beale-street-bg.png`, "cover"
 -fit via `drawBealeBackground()`), plus real static images for Mario

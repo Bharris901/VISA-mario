@@ -419,42 +419,65 @@ PAL.pipe = { '.': null, 'k':'#000000', 'l':'#a8e05a', 'm':'#5aa83f', 'd':'#3d7a2
 const PIPE_W = 48; // TILE * 2
 const PIPE_H = 24; // TILE
 const PIPE_BORDER = 2; // black outline thickness, in native px
-// Vertical color bands across the interior (cols 2..45), left to right:
-// a thin dark stripe, a bright highlight, a thin divider, another highlight,
-// a flat matte mid-green, then a crosshatch/mesh band near the right edge.
-// 'x' is resolved per-pixel in pipeColorAt() below (the crosshatch band).
+// The cap overhangs the body by a few px on each side (its own little lip
+// ledge, like the reference art) - purely a wider *sprite*, not a wider
+// *tile*: main.js's drawLevel() draws the cap shifted left by this amount
+// and wider by twice this amount, while collision/tile placement never
+// change (isSolid() etc. still only ever see the normal 2-tile-wide 'T'/'U'
+// cap columns), so this is cosmetic only.
+const PIPE_CAP_OVERHANG = 4;
+const PIPE_CAP_W = PIPE_W + PIPE_CAP_OVERHANG * 2; // 56
+// Vertical color bands across the body's interior (cols 2..45), left to
+// right: a thin dark stripe, a bright highlight, a thin divider, another
+// highlight, a flat matte mid-green, then a crosshatch/mesh band near the
+// right edge. 'x' is resolved per-pixel in pipeColorAt() below (the
+// crosshatch band).
 const PIPE_BANDS = [
   [2, 5, 'd'], [5, 15, 'l'], [15, 17, 'd'], [17, 25, 'l'], [25, 37, 'm'], [37, 46, 'x'],
 ];
-function pipeColorAt(col, row) {
-  for (const [c0, c1, color] of PIPE_BANDS) {
+// The cap uses the same bands, widened to fill its overhanging extra width:
+// the leftmost band grows to absorb the left overhang, the rightmost band
+// grows to absorb the right overhang, and every band in between just shifts
+// right by the overhang amount - so the reused middle bands land in the
+// same relative place, just framed by a wider (and now overhanging) border.
+function widenOutermostBands(bands, extra) {
+  return bands.map(([c0, c1, color], i) => [
+    i === 0 ? c0 : c0 + extra,
+    i === bands.length - 1 ? c1 + extra * 2 : c1 + extra,
+    color,
+  ]);
+}
+const PIPE_CAP_BANDS = widenOutermostBands(PIPE_BANDS, PIPE_CAP_OVERHANG);
+function pipeColorAt(col, row, bands) {
+  for (const [c0, c1, color] of bands) {
     if (col < c0 || col >= c1) continue;
     if (color !== 'x') return color;
     // Crosshatch/mesh texture: alternating 2x2 blocks of two dark greens.
     return (Math.floor((col - c0) / 2) + Math.floor(row / 2)) % 2 === 0 ? 'd' : 'h';
   }
-  return 'm'; // unreachable - PIPE_BANDS covers the full interior
+  return 'm'; // unreachable - the bands passed in always cover the full interior
 }
-function pipeRow(row, blackRow) {
+function pipeRow(row, blackRow, width, bands) {
   let s = '';
-  for (let col = 0; col < PIPE_W; col++) {
-    const edgeCol = col < PIPE_BORDER || col >= PIPE_W - PIPE_BORDER;
-    s += (blackRow || edgeCol) ? 'k' : pipeColorAt(col, row);
+  for (let col = 0; col < width; col++) {
+    const edgeCol = col < PIPE_BORDER || col >= width - PIPE_BORDER;
+    s += (blackRow || edgeCol) ? 'k' : pipeColorAt(col, row, bands);
   }
   return s;
 }
 // Cap: solid black border all the way around, with a slightly thicker
-// bottom lip (reads as the rim that separates the cap from the body).
+// bottom lip (reads as the rim that separates the cap from the body), baked
+// PIPE_CAP_W wide (wider than the body) for the overhanging-lip look.
 const pipeTop = M(
   Array.from({ length: PIPE_H }, (_, row) =>
-    pipeRow(row, row < PIPE_BORDER || row >= PIPE_H - (PIPE_BORDER + 1))),
+    pipeRow(row, row < PIPE_BORDER || row >= PIPE_H - (PIPE_BORDER + 1), PIPE_CAP_W, PIPE_CAP_BANDS)),
   PAL.pipe
 );
 // Body: black border on the left/right edges only, no top/bottom bar, so
 // stacking body tiles for a taller pipe reads as one continuous tube with
 // no horizontal "rung" line at each tile boundary.
 const pipeBody = M(
-  Array.from({ length: PIPE_H }, (_, row) => pipeRow(row, false)),
+  Array.from({ length: PIPE_H }, (_, row) => pipeRow(row, false, PIPE_W, PIPE_BANDS)),
   PAL.pipe
 );
 
