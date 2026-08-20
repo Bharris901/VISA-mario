@@ -16,7 +16,14 @@ const NOT_FOUND_MESSAGE = "You made it to the end! But…\nYou didn't find the c
 const FOUND_BUT_FINISHED_MESSAGE =
   "🏁 Level complete!\nYou already found the hidden clue — good luck with the rest of the hunt!";
 
-const MARIO_DRAW_SCALE = 1.5; // native sprite px -> on-screen px
+// Native sprite px -> on-screen px. The redesigned Mario sprites (see
+// sprites.js) are baked at a higher native resolution than before (big:
+// 20x36, up from 16x18/20; small: 18x18, up from 16x14) so this scale was
+// lowered to keep big Mario's on-screen height about the same as before
+// (~30px) rather than suddenly rendering him much taller - small Mario ends
+// up proportionally smaller than he used to be as a result, which is
+// actually more faithful to the reference art's own big:small size ratio.
+const MARIO_DRAW_SCALE = 5 / 6;
 const BEALE_BOX_SCALE = 2.2;  // fallback procedural treasure-box draw scale (see drawBealeChest)
 
 // Timing for the chest's post-win sequence (see updateBealeGame's 'burst'

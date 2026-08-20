@@ -200,6 +200,28 @@ same row/column count with no dead padding rows — a mismatch reads as the
 character floating or resizing between frames, since draw size/offset is
 derived from each sprite's actual canvas dimensions.
 
+**Mario's sprites (`marioSmallStand`/`marioBigStand`/etc. in `js/sprites.js`).**
+Redesigned to match a higher-detail reference image (rounder cap/head
+silhouette, a distinct mustache, a more natural walking stride) at a higher
+native resolution than the rest of this file's art: small is 18x18 (was
+16x14), big is 20x36 (was 16x18/20). They were derived from the reference
+image itself - cropped to each of the 8 poses, downsampled with a
+majority-vote pool to the target resolution, and quantized to 3 flat colors
+(no black outline/shading in the source art) - rather than hand-typed from
+scratch, so the shapes stay faithful to the reference. They use their own
+palette, `PAL.heroMario` (`'g'`/`'r'`/`'k'` = overalls-or-shirt green /
+cap-or-overalls red / skin tan), instead of `PAL.mario` - even though the
+key letters overlap, redefining `PAL.mario`'s colors directly would have
+also recolored the growth/1-up mushroom sprites, which still reference it.
+Each of the 8 poses is its own independent grid rather than sharing a common
+head/torso prefix (the old small-file's `bigFrame()` helper) - the new
+poses lean and shift enough through the shoulders that no shared prefix fits
+all four frames anymore. `MARIO_DRAW_SCALE` (`main.js`) was lowered from
+`1.5` to `5/6` to compensate for the higher native resolution, keeping big
+Mario's on-screen height about the same as before - small Mario ends up
+proportionally smaller relative to big Mario than he used to be as a
+result (closer to the reference art's own size ratio between the two).
+
 **Pipe art (`pipeTop`/`pipeBody` in `js/sprites.js`).** Unlike most other
 sprites, these are baked at native SCREEN resolution (`PIPE_W = 48`/`PIPE_H
 = 24`, matching `TILE*2`/`TILE` from `level.js` - written as literal

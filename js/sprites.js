@@ -29,6 +29,12 @@ function bakeSprite(rows, palette) {
 
 const PAL = {
   mario: { '.': null, 'r':'#e52521', 's':'#8b3a00', 'k':'#ffcc99', 'y':'#fbd000', 'w':'#ffffff', 'b':'#000000', 'g':'#00a852' },
+  // Mario's own redesigned sprites (see marioBigStand etc. below) use this
+  // separate palette rather than reusing 'mario' above, even though the key
+  // letters overlap ('g'/'r'/'k') - the growth/1-up mushroom sprites still
+  // reference PAL.mario's original colors directly, so redefining those
+  // would have silently recolored the mushrooms too.
+  heroMario: { '.': null, 'g':'#6f6d23', 'r':'#a23f2e', 'k':'#d7a75b' },
   goomba: { '.': null, 'b':'#8b3a00', 'd':'#4a1f00', 'w':'#ffffff', 'k':'#000000' },
   koopa: { '.': null, 'g':'#00a852', 'y':'#fbd000', 'w':'#ffffff', 'k':'#000000', 'd':'#00782e' },
   block: { '.': null, 'y':'#fbd000', 'o':'#c98800', 'k':'#7a4b00' },
@@ -44,135 +50,265 @@ const PAL = {
 
 const M = (rows, pal) => bakeSprite(rows, pal);
 
-// --- Mario (small), 16x14 (kept tight - no dead rows below the feet, which
-// previously left a small gap between the sprite and the ground) ---
+// --- Mario (small), redesigned to match a higher-detail reference: rounder
+// cap/head silhouette, a distinct mustache, and a more natural walking
+// stride, at higher native resolution (18x18, up from the old 16x14) so the
+// extra shape detail stays crisp rather than blocky. Uses PAL.heroMario
+// (see above), not PAL.mario. ---
+
 const marioSmallStand = M([
-  '......rrr.......',
-  '.....rrrrrr.....',
-  '.....sskkk......',
-  '....skssks......',
-  '....sksskkk.....',
-  '....sskkksss....',
-  '......kkkkk.....',
-  '.....rrryry.....',
-  '....rryryryrr...',
-  '...rryryryryr...',
-  '...rrryyyyrrr...',
-  '.....yy.yy......',
-  '....kk...kk.....',
-  '....kkk.kkk.....',
-], PAL.mario);
+  '......rrrrr.......',
+  '.....rrrrrrrrr....',
+  '.....gggkkgrr.....',
+  '....gggkkkgkk.....',
+  '...gkkgkkkgkkkk...',
+  '...ggkggkkkggkkk..',
+  '...gggkkkkggggg...',
+  '......kkkkkkkk....',
+  '....gggrggg.......',
+  '...ggggrggrgggg...',
+  '..gggggrrrrggggg..',
+  '..kkggrkrrkrggkk..',
+  '..kkkrrrrrrrrkkk..',
+  '..kkkrrrrrrrrkkk..',
+  '...krrrrrrrrrrk...',
+  '....rrrr..rrrr....',
+  '...gggg....gggg...',
+  '..ggggg....ggggg..',
+], PAL.heroMario);
 
 const marioSmallWalk1 = M([
-  '......rrr.......',
-  '.....rrrrrr.....',
-  '.....sskkk......',
-  '....skssks......',
-  '....sksskkk.....',
-  '....sskkksss....',
-  '......kkkkk.....',
-  '....rrryry......',
-  '...srryryryrr...',
-  '..sssryryryr....',
-  '.sss.rryyyyrr...',
-  '.......yy.yy....',
-  '......kk.kkk....',
-  '.....kk...kk....',
-], PAL.mario);
+  '......rrrrr.......',
+  '.....rrrrrrrrr....',
+  '.....gggkkrrr.....',
+  '....ggggkkgkk.....',
+  '....gkgkkkkkkkk...',
+  '....gkggkkkggkkk..',
+  '....ggkkkkggggg...',
+  '......kkkkkkkk....',
+  '..gggggrrgg.......',
+  'kkgggggrrrggggkkk.',
+  'kkkk.ggrkrrrgggkk.',
+  'kkk..rrrrrrr...g..',
+  '....rrrrrrrrr.gg..',
+  '...rrrrrrrrrrrgg..',
+  '..grrrrrrrrrrrgg..',
+  '.gggrrr....rrrgg..',
+  '.gggg.............',
+  '...ggg............',
+], PAL.heroMario);
 
 const marioSmallWalk2 = M([
-  '......rrr.......',
-  '.....rrrrrr.....',
-  '.....sskkk......',
-  '....skssks......',
-  '....sksskkk.....',
-  '....sskkksss....',
-  '......kkkkk.....',
-  '......ryrrr.....',
-  '...rryryryrrs...',
-  '....ryryryrsss..',
-  '...rryyyy.rrsss.',
-  '....yy.yy.......',
-  '....kkk.kk......',
-  '....kk...kk.....',
-], PAL.mario);
+  '..................',
+  '......rrrrr.......',
+  '.....rrrrrrrrrr...',
+  '.....gggkkrrr.....',
+  '....ggggkkgkk.....',
+  '...ggkgkkkgkkkk...',
+  '...ggkggkkkggkkk..',
+  '....ggkkkkggggg...',
+  '......kkkkkkkk....',
+  '.....ggggrg..k....',
+  '....kggggggkkkk...',
+  '..kkkrgggggkkk....',
+  '..ggrrrrrrrrk.....',
+  '..ggrrrrrrrrr.....',
+  '..grrrrrrrrr......',
+  '.ggrrrr.rrr.......',
+  '.g.....ggg........',
+  '.......gggg.......',
+], PAL.heroMario);
 
 const marioSmallJump = M([
-  '......rrr.......',
-  '.....rrrrrr.....',
-  '.....sskkk......',
-  '....skssks......',
-  '....sksskkk.....',
-  '...ssskkksss....',
-  '..s...kkkkk.....',
-  '.ss..rryry......',
-  '.s..rryryryrr...',
-  '...rryryryryr...',
-  '...rrryyyyrr....',
-  '.....yy..yy.....',
-  '....kk....kk....',
-  '................',
-], PAL.mario);
+  '...............kkk',
+  '.......rrrrr...kkk',
+  '......rrrrrrrrrkkk',
+  '......rrrrrrrrrgkk',
+  '.....ggggkkgkkgggg',
+  '.....gkgkkkgkkkggg',
+  '.....gkggkkkggkkkg',
+  '.....ggkkkkgggggg.',
+  '.......kkkkkkkkg..',
+  '..ggggggrgggrgg...',
+  '.ggggggggrgggg...g',
+  'kkgggggggrrrrrr..g',
+  'kkkggrggrrrrrrk.gg',
+  '.kk.rrrgrrrrrrrrgg',
+  '...ggrrrrrrrrrrrgg',
+  '..ggggrrrrrrrrrrgg',
+  '.ggggrrrrrrr......',
+  '.g...rrrr.........',
+], PAL.heroMario);
 
 const MARIO_SMALL = { stand: marioSmallStand, walk: [marioSmallWalk1, marioSmallWalk2], jump: marioSmallJump };
 
-// --- Mario (big), 16x18 (legs trimmed to their actual content - the old
-// version padded 6 dead rows below the feet, which made big Mario render
-// as if hovering above the ground) ---
-function bigFrame(extra) {
-  return M([
-    '......rrr.......',
-    '.....rrrrrr.....',
-    '.....sskkk......',
-    '....skssks......',
-    '....sksskkk.....',
-    '....sskkksss....',
-    '......kkkkk.....',
-    '.....kk.kk......',
-    '.....rrryry.....',
-    '....rryryryrr...',
-    '...rryryryryr...',
-    '...rrryyyyrrr...',
-    '...rrryyyyrrr...',
-    '.....yyy.yyy....',
-    ...extra,
-  ], PAL.mario);
-}
-const marioBigStand = bigFrame([
-  '.....yy..yy.....',
-  '.....yy..yy.....',
-  '....kkk..kkk....',
-  '....kkk..kkk....',
-  '................',
-  '................',
-]);
+
+
+// --- Mario (big), same redesign at 20x36 (up from the old 16x18/20). Each
+// pose is authored as its own independent grid rather than sharing a common
+// head/torso prefix (the old bigFrame() helper) - the new poses lean and
+// shift enough through the shoulders that a shared prefix no longer fits
+// all four frames. ---
+
+const marioBigStand = M([
+  '........rrrrr.......',
+  '......rrrrrrr.......',
+  '.....rrrrrrrk.......',
+  '.....rrrrrrrkr......',
+  '.....rrrrrrrrrrr....',
+  '....ggggkkgkkkk.....',
+  '...ggkkgkkggkkkkk...',
+  '...ggkkggkkkkkkkkk..',
+  '..gggkkggkkkgkkkkk..',
+  '..gggkkkkkggggggg...',
+  '..gggkkkkkkgggggg...',
+  '....ggkkkkkkkkkg....',
+  '.....ggkkkkkkk......',
+  '......gkkkkkgg......',
+  '.....ggrggggrgg.....',
+  '....gggrggggrggg....',
+  '...ggggrggggrgggg...',
+  '..gggggrggggrggggg..',
+  '..ggggrrggggrrgggg..',
+  '.gggggrrggggrrggggg.',
+  '.gggggrrrrrrrrggggg.',
+  '.gggggrrrrrrrrggggg.',
+  '.ggggrrrrrrrrrrgggg.',
+  '.kkkkkrrrrrrrrrkkkk.',
+  '.kkkkkrrrrrrrrrkkkk.',
+  '..kkkkrrrrrrrrrkkk..',
+  '..kkkrrrrrrrrrrrkk..',
+  '...rrrrrrrrrrrrrr...',
+  '..rrrrrrr..rrrrrrr..',
+  '..rrrrrr....rrrrrr..',
+  '..rrrrrr....rrrrrr..',
+  '...rgggg....ggggg...',
+  '...ggggg....ggggg...',
+  '...ggggg....ggggg...',
+  '.ggggggg....ggggggg.',
+  '.ggggggg....ggggggg.',
+], PAL.heroMario);
+
 // Two distinct stepping poses (one leg forward+raised, the other trailing
-// and extended back, swapping sides each frame) so walking actually reads
-// as a stride instead of alternating with the near-identical standing pose.
-const marioBigWalk1 = bigFrame([
-  '.....yy..yy.....',
-  '.....yy...yys...',
-  '....kk....kks...',
-  '....kk.....kss..',
-  '...........sss..',
-  '................',
-]);
-const marioBigWalk2 = bigFrame([
-  '.....yy..yy.....',
-  '....syy..yy.....',
-  '...skk...kk.....',
-  '..sskk....kk....',
-  '..sss...........',
-  '................',
-]);
-const marioBigJump = bigFrame([
-  '.....yy.yy......',
-  '....kk...kk.....',
-  '................',
-  '................',
-  '................',
-  '................',
-]);
+// and extended back) so walking actually reads as a stride.
+
+const marioBigWalk1 = M([
+  '....................',
+  '....................',
+  '....................',
+  '........rrrrr.......',
+  '......rrrrrrr.......',
+  '.....rrrrrrrk.......',
+  '.....rrrrrrrrrrr....',
+  '.....rrrrrrrrrrr....',
+  '....ggggkkggkkk.....',
+  '...ggkkgkkggkkkkk...',
+  '...ggkkggkkkkkkkkk..',
+  '..gggkkggkkkggkkkk..',
+  '..gggkkkkkggggggg...',
+  '...gggkkkkkgggggg...',
+  '......gkkkkkkkkk....',
+  '.....grrrkkk........',
+  '....grgggrg.........',
+  '...ggrggggrg........',
+  '...ggrgggggrr.k.....',
+  '..ggrrggggggrkkk....',
+  '..ggrrgggggggkkkkk..',
+  '...rrrrgggggggkkkk..',
+  '....rrrggggggggkkk..',
+  '....rrrrgggggggkkk..',
+  '....rrrrrrgggrr.....',
+  '....rrrrrrrrrrr.....',
+  '....rrrrrrrrrgg.....',
+  'ggggrrrrrrrrgrr.....',
+  'gggggrrrrrggrrrr....',
+  'gggggrrrrgrrrrr.....',
+  'gggggrrr..rrrrr.....',
+  'gggggrr...rrrr......',
+  'gggg......ggggg.....',
+  'gg........ggggg.....',
+  'g.........ggggggg...',
+  '..........ggggggg...',
+], PAL.heroMario);
+
+const marioBigWalk2 = M([
+  '........rrrrr.......',
+  '......rrrrrrr.......',
+  '.....rrrrrrrk.......',
+  '.....rrrrrrrkr......',
+  '.....rrrrrrrrrrr....',
+  '....ggggkkgkkkk.....',
+  '...ggkkgkkggkkkkk...',
+  '...ggkkggkkkkkkkkk..',
+  '..gggkkggkkkgkkkkk..',
+  '..gggkkkkkggggggg...',
+  '..gggkkkkkkgggggg...',
+  '....ggkkkkkkkkkg....',
+  '......ggggkkk.......',
+  '.......gggkk........',
+  '......rrrrggr...kk..',
+  '....gggggrrggrrkkkk.',
+  '...gggggggrrgrggkkk.',
+  '..ggggggggrrgggrkkk.',
+  '..ggggggggrrgggrgkg.',
+  '..gggggggrrrgggrgg..',
+  '.gggggggrrrkrgggg...',
+  '.gggggrrrrrrrrrk....',
+  '.ggggkrrrrrrrrrr....',
+  '.kkkkkkrrrrrrrrr....',
+  '.kkkkkrrrrrrrrrr..g.',
+  '.kkkkkrrrrrrrrrr.gg.',
+  '..kkkkrrrrrrrgggggg.',
+  '.....rgrrrrrrgggggg.',
+  '....grrgrrrrrgggggg.',
+  '.ggggrrrggrrrgggggg.',
+  '.ggggrrrrr...gggggg.',
+  '.gggggrr............',
+  '..gggg..............',
+  '..gggg..............',
+  '..gggg..............',
+  '....ggg.............',
+], PAL.heroMario);
+
+const marioBigJump = M([
+  '..............kkk...',
+  '............kkkkkk..',
+  '.......rrrrrkkkgkk..',
+  '.......rrrrrkkkgkk..',
+  '....rrrrrrrrkkkkkk..',
+  '....rrrrrrrrgggggg..',
+  '....rrrrrrrrrrrrgg..',
+  '...ggggkkgkkkggggg..',
+  '..ggkkgkkgkkkkkkgg..',
+  '..ggkkggkkkkkkkkkg..',
+  '..ggkkggkkkgkkkkkg..',
+  '..ggkkkkkgggggggg...',
+  '.ggggkkkkkggggggg...',
+  '..ggggkkkkkgggggg...',
+  '....ggkkkkkkkkggg...',
+  '.....rrrrggrggggg...',
+  '.gggggggrrgrgggg....',
+  'gggggggggrggrggg....',
+  'gggggggggrrgrgg.....',
+  'gggkgggggrrggr......',
+  'ggkkkgggrrrrggk.....',
+  'kkkkkkgrrrrrrr......',
+  'kkkkkkrrrrrrrrr.....',
+  'kkkkkrrrrrrrrrr.....',
+  'k.kkrrrrrrrrrrr.gg..',
+  '.kkrrrrrrrrrrrr.gg..',
+  '....rrrrrrrrrggggg..',
+  '...ggrrrrrrrrggggg..',
+  'ggggrggrrrrrrggggg..',
+  'ggggrrrggrrrrggggg..',
+  'ggggrrrrr..rrggggg..',
+  'ggggrrrrr...........',
+  'ggggrrrr............',
+  'ggggrrrr............',
+  'gg..................',
+  'g...................',
+], PAL.heroMario);
+
 const MARIO_BIG = { stand: marioBigStand, walk: [marioBigWalk1, marioBigWalk2], jump: marioBigJump };
 
 // --- Goomba, 16x16 ---
