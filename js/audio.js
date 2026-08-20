@@ -1,7 +1,11 @@
 // ---------------------------------------------------------------------------
-// Tiny procedural 8-bit-style sound effects via WebAudio. No external audio
-// files needed, and mobile autoplay restrictions are satisfied because the
-// context is only created/resumed after the player's first tap.
+// Tiny procedural 8-bit-style sound effects via WebAudio for every one-shot
+// SFX (jump, coin, stomp, card flip, ...), plus real MP3 music tracks for
+// the level/mini-game loops and the death/flagpole/final-match stings (see
+// "Real music tracks" below). Mobile autoplay restrictions are satisfied
+// because the AudioContext is only *resumed*, and any music/SFX actually
+// played, after the player's first tap - decoding the MP3s ahead of that
+// tap is fine (see loadMusicTracks()), only playback needs the gesture.
 // ---------------------------------------------------------------------------
 
 const Sfx = (() => {
@@ -68,139 +72,130 @@ const Sfx = (() => {
     } catch (e) {}
   }
 
-  // --- Background music: a cheery, upbeat original 8-bit-style loop (not
-  // the Mario theme - an original composition), kept quiet so it sits under
-  // the SFX. Built from four 16-step phrases stitched into a longer
-  // ~25s sequence so it doesn't feel like it's looping every few seconds. ---
-  const STEP_SEC = 0.16;
-  const MUSIC_VOL = 0.045; // deliberately well below SFX (~0.15-0.2)
-
-  // Bright, bouncy major-key phrases ('.' = rest).
-  const PHRASE_A_MEL = [523,'.',659,'.', 784,'.',659,'.', 523,'.',659,'.', 784,'.','.','.'];
-  const PHRASE_A_BASS = [262,'.','.','.', 330,'.','.','.', 392,'.','.','.', 330,'.','.','.'];
-
-  const PHRASE_B_MEL = [784,'.',880,'.', 1047,'.',880,'.', 784,'.',698,'.', 659,'.','.','.'];
-  const PHRASE_B_BASS = [392,'.','.','.', 440,'.','.','.', 523,'.','.','.', 440,'.','.','.'];
-
-  const PHRASE_C_MEL = [659,'.',587,'.', 523,'.',587,'.', 659,'.',784,'.', 659,'.','.','.'];
-  const PHRASE_C_BASS = [330,'.','.','.', 294,'.','.','.', 262,'.','.','.', 294,'.','.','.'];
-
-  const PHRASE_D_MEL = [1047,'.',988,'.', 880,'.',784,'.', 880,'.',988,'.', 1047,'.','.','.'];
-  const PHRASE_D_BASS = [523,'.','.','.', 494,'.','.','.', 440,'.','.','.', 392,'.','.','.'];
-
-  const PHRASES = {
-    A: { mel: PHRASE_A_MEL, bass: PHRASE_A_BASS },
-    B: { mel: PHRASE_B_MEL, bass: PHRASE_B_BASS },
-    C: { mel: PHRASE_C_MEL, bass: PHRASE_C_BASS },
-    D: { mel: PHRASE_D_MEL, bass: PHRASE_D_BASS },
+  // --- Real music tracks (MP3s), replacing the game's earlier procedural
+  // loops/stings entirely. Decoded into AudioBuffers (loadMusicTracks(),
+  // kicked off from boot() in main.js, well before they're first needed)
+  // rather than played via a plain <audio> element, so looping is
+  // sample-accurate - MP3 encoders commonly pad a file with a few ms of
+  // silence at the start/end, which shows up as an audible click at the
+  // loop seam with <audio loop>, but not when a decoded AudioBuffer is
+  // looped through an AudioBufferSourceNode. decodeAudioData() itself
+  // doesn't need a "resumed" (post-gesture) context, so this can start
+  // fetching/decoding immediately at boot - only actual playback is gated
+  // behind ensure()/the start-button tap, same as every other sound here.
+  // ?v= matches index.html's shared cache-busting query (see CLAUDE.md) -
+  // fetch() doesn't get that for free the way <script>/<link> tags do, so
+  // it's applied here explicitly; bump it alongside the rest whenever one
+  // of these files is ever swapped for a new version.
+  const MUSIC_VERSION = 'v=15';
+  const MUSIC_FILES = {
+    ground: `assets/music-ground-theme.mp3?${MUSIC_VERSION}`,
+    underwater: `assets/music-underwater-theme.mp3?${MUSIC_VERSION}`,
+    finalMatch: `assets/music-final-match-theme.mp3?${MUSIC_VERSION}`,
+    mariodies: `assets/music-mario-dies-theme.mp3?${MUSIC_VERSION}`,
+    gameover: `assets/music-game-over-theme.mp3?${MUSIC_VERSION}`,
+    levelcomplete: `assets/music-level-complete-theme.mp3?${MUSIC_VERSION}`,
   };
-  // ~25.6s total (10 phrases * 16 steps * 0.16s) before it repeats.
-  const SONG_ORDER = ['A', 'B', 'A', 'C', 'A', 'B', 'D', 'A', 'C', 'A'];
-  const MELODY = SONG_ORDER.flatMap(p => PHRASES[p].mel);
-  const BASS = SONG_ORDER.flatMap(p => PHRASES[p].bass);
+  // Real mastered audio doesn't need to be nearly as quiet as the old
+  // procedural loops (which were deliberately turned way down to sit under
+  // the SFX) - these are a starting point and may want ear-tuning.
+  const LOOP_VOL = 0.5;
+  const STING_VOL = 0.6;
 
-  let musicOn = false;
-  let musicStep = 0;
-  let nextNoteTime = 0;
-  let schedulerHandle = null;
+  const musicBuffers = {};
+  let groundSource = null, underwaterSource = null;
+  // Tracks what *should* be playing so a startMusic()/startMiniGameMusic()
+  // call that arrives before its file has finished loading (e.g. a very
+  // fast tap on a slow connection) isn't silently lost - once the buffer
+  // finishes decoding, tryStartPending() starts it if it's still wanted.
+  let desiredGround = false, desiredUnderwater = false;
 
-  function scheduleAhead() {
+  async function loadMusicTracks() {
     const c = ensure();
-    while (nextNoteTime < c.currentTime + 0.2) {
-      const mel = MELODY[musicStep % MELODY.length];
-      const bass = BASS[musicStep % BASS.length];
-      if (mel !== '.') toneAt(nextNoteTime, mel, STEP_SEC * 0.85, 'square', MUSIC_VOL);
-      if (bass !== '.') toneAt(nextNoteTime, bass, STEP_SEC * 0.95, 'triangle', MUSIC_VOL * 0.9);
-      // A light rhythmic pulse (soft "kick" on the downbeat, a short tick on
-      // the offbeat) to give the loop some bounce/energy rather than just
-      // a bare melody.
-      const beat = musicStep % 4;
-      if (beat === 0) toneAt(nextNoteTime, 100, 0.09, 'sine', MUSIC_VOL * 0.8);
-      if (beat === 2) toneAt(nextNoteTime, 1800, 0.02, 'square', MUSIC_VOL * 0.5);
-      nextNoteTime += STEP_SEC;
-      musicStep++;
-    }
+    await Promise.all(Object.entries(MUSIC_FILES).map(async ([name, url]) => {
+      try {
+        const res = await fetch(url);
+        const arr = await res.arrayBuffer();
+        musicBuffers[name] = await c.decodeAudioData(arr);
+        tryStartPending();
+      } catch (e) { /* that track just won't play - rest of the game still works */ }
+    }));
   }
 
-  // --- Mini-game music: a separate, peppier/faster loop that only plays
-  // while the Beale Street card grid is up (see js/main.js), replacing the
-  // main level's theme for that stretch (paused, not stopped-for-good) so
-  // the two never overlap. Runs on its own step/scheduler state so it can't
-  // interfere with the main theme's. A quicker step (0.15s vs 0.16s) plus
-  // bigger melodic jumps than the main theme give it a distinctly more
-  // "hurry up and find the match!" energy.
-  const MINI_STEP_SEC = 0.15;
-  const MINI_MUSIC_VOL = 0.05;
+  function tryStartPending() {
+    if (desiredGround && !groundSource && musicBuffers.ground) startLoop('ground');
+    if (desiredUnderwater && !underwaterSource && musicBuffers.underwater) startLoop('underwater');
+  }
 
-  const MG_1_MEL = [784, 880, 988, 880, 784, 659, 784, 880, 988, 1047, 988, 880, 784, '.', '.', '.'];
-  const MG_1_BASS = [392, '.', '.', '.', 330, '.', '.', '.', 392, '.', '.', '.', 440, '.', '.', '.'];
-  const MG_2_MEL = [1047, 988, 880, 988, 1047, 1175, 1047, 988, 880, 988, 1047, 880, 988, '.', '.', '.'];
-  const MG_2_BASS = [440, '.', '.', '.', 392, '.', '.', '.', 440, '.', '.', '.', 523, '.', '.', '.'];
-  const MG_3_MEL = [659, 784, 880, 784, 659, 587, 659, 784, 880, 784, 659, 587, 523, '.', '.', '.'];
-  const MG_3_BASS = [330, '.', '.', '.', 294, '.', '.', '.', 330, '.', '.', '.', 262, '.', '.', '.'];
-  const MG_4_MEL = [523, 659, 784, 1047, 988, 880, 784, 659, 587, 659, 784, 880, 1047, '.', '.', '.'];
-  const MG_4_BASS = [262, '.', '.', '.', 349, '.', '.', '.', 294, '.', '.', '.', 392, '.', '.', '.'];
-
-  const MG_PHRASES = {
-    1: { mel: MG_1_MEL, bass: MG_1_BASS }, 2: { mel: MG_2_MEL, bass: MG_2_BASS },
-    3: { mel: MG_3_MEL, bass: MG_3_BASS }, 4: { mel: MG_4_MEL, bass: MG_4_BASS },
-  };
-  // 6 phrases * 16 steps * 0.15s = 14.4s, ~15s before it loops.
-  const MG_ORDER = [1, 2, 1, 3, 2, 4];
-  const MINI_MELODY = MG_ORDER.flatMap(p => MG_PHRASES[p].mel);
-  const MINI_BASS = MG_ORDER.flatMap(p => MG_PHRASES[p].bass);
-
-  let miniMusicOn = false;
-  let miniMusicStep = 0;
-  let miniNextNoteTime = 0;
-  let miniSchedulerHandle = null;
-
-  function scheduleMiniAhead() {
+  // 'ground' and 'underwater' are mutually exclusive (never both at once,
+  // matching the two-separate-loops design this replaces) - starting one
+  // always stops the other first.
+  function startLoop(which) {
+    stopLoop(which === 'ground' ? 'underwater' : 'ground');
+    const already = which === 'ground' ? groundSource : underwaterSource;
+    if (already) return;
+    const buf = musicBuffers[which];
+    if (!buf) return;
     const c = ensure();
-    while (miniNextNoteTime < c.currentTime + 0.2) {
-      const mel = MINI_MELODY[miniMusicStep % MINI_MELODY.length];
-      const bass = MINI_BASS[miniMusicStep % MINI_BASS.length];
-      if (mel !== '.') toneAt(miniNextNoteTime, mel, MINI_STEP_SEC * 0.8, 'square', MINI_MUSIC_VOL);
-      if (bass !== '.') toneAt(miniNextNoteTime, bass, MINI_STEP_SEC * 0.9, 'triangle', MINI_MUSIC_VOL * 0.85);
-      // brighter/quicker pulse than the main theme's, for extra pep
-      const beat = miniMusicStep % 4;
-      if (beat === 0) toneAt(miniNextNoteTime, 120, 0.08, 'sine', MINI_MUSIC_VOL * 0.75);
-      if (beat === 2) toneAt(miniNextNoteTime, 2100, 0.03, 'triangle', MINI_MUSIC_VOL * 0.55);
-      miniNextNoteTime += MINI_STEP_SEC;
-      miniMusicStep++;
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const gain = c.createGain();
+    gain.gain.value = LOOP_VOL;
+    src.connect(gain).connect(c.destination);
+    src.start(0);
+    if (which === 'ground') groundSource = src; else underwaterSource = src;
+  }
+  function stopLoop(which) {
+    const src = which === 'ground' ? groundSource : underwaterSource;
+    if (src) {
+      try { src.stop(); } catch (e) {}
+      try { src.disconnect(); } catch (e) {}
     }
+    if (which === 'ground') groundSource = null; else underwaterSource = null;
+  }
+
+  function playSting(name) {
+    const buf = musicBuffers[name];
+    if (!buf) return;
+    try {
+      const c = ensure();
+      const src = c.createBufferSource();
+      src.buffer = buf;
+      const gain = c.createGain();
+      gain.gain.value = STING_VOL;
+      src.connect(gain).connect(c.destination);
+      src.start(0);
+    } catch (e) {}
   }
 
   return {
     unlock() { ensure(); },
+    loadMusicTracks,
     startMusic() {
-      if (musicOn) return;
-      musicOn = true;
-      const c = ensure();
-      musicStep = 0;
-      nextNoteTime = c.currentTime + 0.05;
-      scheduleAhead();
-      schedulerHandle = setInterval(scheduleAhead, 100);
+      desiredGround = true; desiredUnderwater = false;
+      startLoop('ground');
     },
     stopMusic() {
-      musicOn = false;
-      if (schedulerHandle) clearInterval(schedulerHandle);
-      schedulerHandle = null;
+      desiredGround = false;
+      stopLoop('ground');
     },
     startMiniGameMusic() {
-      if (miniMusicOn) return;
-      miniMusicOn = true;
-      const c = ensure();
-      miniMusicStep = 0;
-      miniNextNoteTime = c.currentTime + 0.05;
-      scheduleMiniAhead();
-      miniSchedulerHandle = setInterval(scheduleMiniAhead, 100);
+      desiredUnderwater = true; desiredGround = false;
+      startLoop('underwater');
     },
     stopMiniGameMusic() {
-      miniMusicOn = false;
-      if (miniSchedulerHandle) clearInterval(miniSchedulerHandle);
-      miniSchedulerHandle = null;
+      desiredUnderwater = false;
+      stopLoop('underwater');
     },
+    // Upon finding the mini-game's final (10th) match - plays alongside
+    // treasureBurst()'s short procedural fanfare below, through the chest's
+    // shake/pop/message-twirl sequence.
+    finalMatchTheme() { playSting('finalMatch'); },
+    // Flagpole outcomes - fireworks still fire visually either way (see
+    // finishFlagpole() in main.js), only the accompanying music differs.
+    gameOverTheme() { playSting('gameover'); },
+    levelCompleteTheme() { playSting('levelcomplete'); },
     jump() { slide(300, 600, 0.18); },
     coin() { tone(988, 0.08, 'square', 0.18); tone(1319, 0.18, 'square', 0.15, 0.06); },
     stomp() { slide(180, 60, 0.12, 'square', 0.2); },
@@ -215,16 +210,9 @@ const Sfx = (() => {
     // deliberately quiet/short so it reads as a gentle nudge, not a buzzer.
     denied() { tone(180, 0.07, 'square', 0.1); tone(140, 0.09, 'square', 0.09, 0.05); },
     die() { slide(400, 100, 0.6, 'sawtooth', 0.18); },
-    // Classic descending "womp womp womp waaah" - plays over the death
-    // screen (background music is stopped first) so death has a distinct,
-    // ~5s musical sting rather than silence or the upbeat loop continuing.
-    deathJingle() {
-      const notes = [196, 185, 165, 147, 110];
-      const durs  = [0.7, 0.7, 0.7, 0.7, 2.2];
-      let t = 0;
-      notes.forEach((f, i) => { tone(f, durs[i], 'sawtooth', 0.17, t); t += durs[i]; });
-    },
-    win() { [523,659,784,1047,1319].forEach((f,i)=>tone(f,0.18,'triangle',0.18,i*0.12)); },
+    // Plays over the death screen (background music is stopped first) - a
+    // real musical sting rather than silence or the loop continuing.
+    deathJingle() { playSting('mariodies'); },
     firework() {
       const base = 700 + Math.random() * 500;
       slide(base, base * 1.8, 0.12, 'sine', 0.14);

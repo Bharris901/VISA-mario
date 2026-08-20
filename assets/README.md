@@ -45,3 +45,26 @@ a brief fallback for whichever image hasn't finished loading yet - not
 normally visible once all 10 files have loaded. To add art for some future
 new icon that doesn't have a source image, give it a `case` in that
 function's `switch` statement instead of a `CARD_PHOTOS` entry.
+
+## `music-*.mp3`
+
+Six real, user-provided music tracks (replacing what used to be procedural
+loops/stings in `js/audio.js`), loaded/decoded by `Sfx.loadMusicTracks()`:
+
+- `music-ground-theme.mp3` — the main level's loop (`Sfx.startMusic()`).
+- `music-underwater-theme.mp3` — the Beale scene's loop
+  (`Sfx.startMiniGameMusic()`), starting the instant Mario and the chest
+  land, not at the tap-to-begin gesture.
+- `music-final-match-theme.mp3` — one-shot sting on the mini-game's 10th
+  match (`Sfx.finalMatchTheme()`), playing through the chest's
+  shake/pop/message-twirl.
+- `music-mario-dies-theme.mp3` — one-shot sting on death
+  (`Sfx.deathJingle()`).
+- `music-game-over-theme.mp3` / `music-level-complete-theme.mp3` — one-shot
+  stings at the flagpole (`Sfx.gameOverTheme()`/`Sfx.levelCompleteTheme()`),
+  chosen by whether `game.clueFound` is false/true - fireworks fire either
+  way, only the music differs.
+
+Used as-is, not re-mixed/re-edited. See the "Real MP3 music tracks" and
+"Two separate music loops" notes in `CLAUDE.md` for the gapless-looping and
+autoplay-policy details.

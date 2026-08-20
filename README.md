@@ -57,13 +57,13 @@ doing nothing silently.
 - **Jump buffering** — a jump tapped slightly early still fires the moment
   you land.
 - **No game over, ever** — dying (falling in a pit, an enemy hit while
-  small, or time running out) cuts the background music and plays a ~5s
-  descending "womp womp" sting, then shows a "Try again Memphis Mario!"
-  screen (with an 8-bit X-eyes face) and a Start Over button. Music stays
-  off until Start Over restarts it fresh. There's no fail state that stops
-  play, just a quick pause and a tap to go again. (An earlier version of
-  this also made the player briefly invincible to enemies after repeated
-  deaths - that's been removed; enemies always damage normally now.)
+  small, or time running out) cuts the background music and plays a short
+  death sting, then shows a "Try again Memphis Mario!" screen (with an
+  8-bit X-eyes face) and a Start Over button. Music stays off until Start
+  Over restarts it fresh. There's no fail state that stops play, just a
+  quick pause and a tap to go again. (An earlier version of this also made
+  the player briefly invincible to enemies after repeated deaths - that's
+  been removed; enemies always damage normally now.)
 
 ## Power-ups
 
@@ -81,10 +81,10 @@ since dying never actually ends play).
 - Mario and a closed treasure chest both fall in from the top of the
   screen together and land - Mario on the left, the chest on the right,
   in front of the Beale Street skyline - and neither one moves again for
-  the rest of the mini-game. A speech bubble asks for help matching the
-  cards and ends with "Tap to begin" — tapping anywhere starts the grid
-  (no timer). A peppy ~15s music loop (distinct from the main level's
-  theme, which pauses for it) plays for as long as the grid is up.
+  the rest of the mini-game. The moment they land, the main level's music
+  hands off to a second music loop that plays for as long as this scene is
+  up. A speech bubble asks for help matching the cards and ends with "Tap
+  to begin" — tapping anywhere starts the grid (no timer).
 - The 20-card grid (10 pairs of Memphis icons — University of Memphis,
   Grizzlies, Redbirds, Elvis, the Pyramid, the Peabody duck, a Beale
   Street guitar, the M bridge, the Lorraine Motel sign, St. Jude) fades
@@ -93,12 +93,13 @@ since dying never actually ends play).
   head, with a little celebration burst, a mismatch flips both back
   over. Keep going — unlimited attempts, no penalty — until all 10 pairs
   are found.
-- Finding the last pair stops the mini-game music and scatters the
-  matched cards apart in a burst of confetti, while the chest - still
-  sitting exactly where it landed - starts to shake. About 3 seconds
-  later it pops open with real fireworks and a message card twirls out
-  of it, growing to fill the screen and becoming the clue message. The
-  main level's music resumes once the player continues.
+- Finding the last pair stops the mini-game music, plays a triumphant
+  music sting, and scatters the matched cards apart in a burst of confetti,
+  while the chest - still sitting exactly where it landed - starts to
+  shake. About 3 seconds later it pops open with real fireworks and a
+  message card twirls out of it, growing to fill the screen and becoming
+  the clue message. The main level's music resumes once the player
+  continues.
 - On winning, the clue message is shown, then play resumes right back at
   the pipe so the player can continue to the flagpole.
 - Reaching the flagpole **without ever finding/winning the secret game**
@@ -108,7 +109,8 @@ since dying never actually ends play).
   congratulatory completion message instead.
 - Either way, touching the pole (including landing on top of it from a
   jump off the final staircase) grabs on and slides down to the bottom
-  first; landing is when fireworks go off, the music stops, and the
+  first; landing is when fireworks go off (always), a music sting plays
+  (a different one depending on whether the clue was found), and the
   message appears a beat later. Tapping Play Again/Start Over restarts the
   music from the top of the loop.
 
@@ -118,12 +120,12 @@ since dying never actually ends play).
 index.html          markup + overlays (start, rotate-prompt, message, HUD)
 style.css            layout, HUD, touch controls, responsive/orientation CSS
 js/sprites.js        pixel-art sprite definitions (Mario, enemies, tiles...)
-js/audio.js          procedural 8-bit-style sound effects + background music (WebAudio)
+js/audio.js          procedural 8-bit-style sound effects + real MP3 music tracks (WebAudio)
 js/input.js          keyboard + touch input
 js/level.js          tile map layout + entity spawn list
 js/physics.js        movement tuning + tile collision
 js/entities.js       player/enemy/mushroom update logic
-js/secretRoom.js     Beale Street photo backdrop + procedural big-Mario/speech-bubble rendering
+js/secretRoom.js     Beale Street photo backdrop + Mario/treasure chest images + speech bubble
 js/minigame.js       the 20-card memory matching game + treasure chest sequence
 js/ui.js             HUD + message overlay helpers
 js/main.js           state machine, camera, render loop, boot

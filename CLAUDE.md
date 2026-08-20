@@ -89,18 +89,42 @@ there, because by that point the main theme was deliberately paused (see
 below) for the Beale scene's own music - that's a resume, not a restart.
 
 **Two separate music loops, never both at once.** `Sfx.startMusic()`/
-`stopMusic()` is the main level's looping theme. `Sfx.startMiniGameMusic()`/
-`stopMiniGameMusic()` (`js/audio.js`) is a second, independent
-lookahead-scheduled loop - its own step/scheduler state, a quicker step and
-bigger melodic jumps for a peppier feel - that exists solely for the Beale
-Street card-matching grid. `main.js` pauses one before starting the other so
-they never overlap: `handleBealeCanvasTap()`'s `'bubble'`-phase branch calls
-`stopMusic()` + `startMiniGameMusic()` right as the grid appears; finding the
-10th pair calls `stopMiniGameMusic()` (then `startTreasureBurst()` plays the
-short celebration cue); the clue message's continue button calls
-`startMusic()` to bring the main theme back once play resumes.
-`resetLevel()` also calls `stopMiniGameMusic()` defensively in case a reset
-ever happens mid mini-game.
+`stopMusic()` is the main level's looping theme (Ground Theme).
+`Sfx.startMiniGameMusic()`/`stopMiniGameMusic()` (`js/audio.js`) is a
+second, independent loop (Underwater Theme) that exists solely for the
+Beale Street card-matching grid. `main.js` pauses one before starting the
+other so they never overlap - and unlike the mini-game's *card* logic, this
+swap is *not* tied to the tap-to-begin gesture: `updateBealeIntro()`'s
+`'fall'` branch calls `stopMusic()` + `startMiniGameMusic()` the instant
+Mario and the chest finish landing (both play under the speech bubble,
+before the grid ever appears). Finding the 10th pair calls
+`stopMiniGameMusic()` + `Sfx.finalMatchTheme()` (a one-shot sting, not a
+loop - see below) in `handleBealeCanvasTap()`, alongside
+`startCardScatter()`'s short procedural celebration cue; the clue message's
+continue button calls `startMusic()` to bring the main theme back once play
+resumes. `resetLevel()` also calls `stopMiniGameMusic()` defensively in
+case a reset ever happens mid mini-game.
+
+**Real MP3 music tracks, not procedural loops.** Both loops above, plus
+three one-shot musical stings (`Sfx.deathJingle()` on death,
+`Sfx.gameOverTheme()`/`Sfx.levelCompleteTheme()` at the flagpole depending
+on `game.clueFound`, and `Sfx.finalMatchTheme()` on the mini-game's 10th
+match), are real user-provided `assets/music-*.mp3` files, not the
+oscillator-generated tones the rest of `js/audio.js` still uses for every
+other SFX. `Sfx.loadMusicTracks()` (called once from `boot()`, not awaited)
+fetches and `decodeAudioData()`s all six into `AudioBuffer`s as early as
+possible, well before the start-button tap - decoding doesn't need a
+resumed `AudioContext`, only *playback* does, so this doesn't violate
+mobile autoplay rules. Loops play via `AudioBufferSourceNode` with
+`loop = true` rather than a plain `<audio loop>` element specifically for
+gapless looping: MP3 encoders commonly pad a file with a few ms of silence
+at the start/end, which is audible as a click at the loop seam with
+`<audio loop>` but not with a looped decoded buffer. **Gotcha to watch
+for:** a `startMusic()`/`startMiniGameMusic()` call can arrive before its
+file has finished decoding (a fast tap on a slow connection) - `desiredGround`/
+`desiredUnderwater` track what *should* be playing, and `tryStartPending()`
+(called every time a track finishes decoding) starts it then if it's still
+wanted, so the request isn't silently dropped.
 
 **Frame-rate independence (`dtScale`).** Physics constants in `physics.js`
 (`PHYS.*`) are tuned as "per 1/60s frame" deltas. Every place that applies
@@ -306,12 +330,14 @@ used to be one) and so no D-pad re-enabling inside this scene at all - the
 D-pad/JUMP/DESCEND stay hidden for the *entire* secret scene, no exceptions.
 
 **Audio (`js/audio.js`).** A single `Sfx` IIFE wraps WebAudio: one-shot SFX
-via `tone()`/`slide()`, plus a lookahead-scheduled background music loop
-(`startMusic()`/`stopMusic()`, `toneAt()` scheduling at absolute
-`AudioContext` times to avoid `setTimeout` drift). The `AudioContext` is only
-created/resumed on `unlock()`, called from the start-button tap handler in
-`main.js` — mobile browsers block audio before a user gesture, so don't move
-audio init earlier than that tap.
+via `tone()`/`slide()` (`toneAt()` is only still used by nothing now that
+the two music loops are real audio - kept for any future procedural
+scheduling need), plus the real MP3 music tracks described above. The
+`AudioContext` is only *resumed*, and any sound actually *played*, on
+`unlock()`, called from the start-button tap handler in `main.js` — mobile
+browsers block audio before a user gesture, so don't move real playback
+earlier than that tap (constructing the context and decoding MP3s ahead of
+it, as `loadMusicTracks()` does, is fine - see above).
 
 **Stomp detection (`checkEnemyCollisions` in `main.js`).** A stomp is
 "falling, and `p.prevBottom <= e.y`" — `prevBottom` is the player's
@@ -348,6 +374,9 @@ used to guarantee.
 - `PHYS.*` — `physics.js` (movement/jump tuning; remember the dtScale note
   above when changing anything here). There's a single ground speed
   (`WALK_MAX`/`WALK_ACCEL`) - no run/speed-tier button.
+- `MUSIC_FILES`/`LOOP_VOL`/`STING_VOL` — `audio.js` (which `assets/music-*.mp3`
+  plays where, and how loud - real audio, so these volumes may need
+  ear-tuning rather than the low-effort guesses currently in place).
 
 **Design invariant to preserve:** there is no game-over state. Every death
 path funnels through `world.onPlayerDeath(reason)`, which shows a "Try again

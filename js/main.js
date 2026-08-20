@@ -248,7 +248,9 @@ function checkFlagpole() {
 function finishFlagpole() {
   game.state = 'frozen';
   Sfx.stopMusic();
-  Sfx.win();
+  // Fireworks fire visually either way (below) - only the accompanying
+  // music differs between "made it but missed the clue" and "found it".
+  if (game.clueFound) Sfx.levelCompleteTheme(); else Sfx.gameOverTheme();
   const p = game.player;
   const baseX = p.x + p.w / 2, baseY = p.y;
   world.spawnFireworks(baseX, baseY - 20);
@@ -675,6 +677,10 @@ function updateBealeIntro(dt) {
     if (b.marioFootY >= b.groundY && b.chestFootY >= b.groundY) {
       b.phase = 'bubble';
       Sfx.thud();
+      // The mini-game's music begins the instant Mario lands (not later, at
+      // the tap-to-begin gesture) and replaces the main level's theme.
+      Sfx.stopMusic();
+      Sfx.startMiniGameMusic();
     }
   }
   // 'bubble' just waits here - dismissed by a tap anywhere on screen,
@@ -771,11 +777,8 @@ function handleBealeCanvasTap(clientX, clientY) {
 
   if (game.beale.phase === 'bubble') {
     // Any tap anywhere dismisses the speech bubble and starts the grid.
-    // The main level's music pauses for the mini-game's own peppy loop,
-    // which plays only while the grid is live (see the 'grid' win branch
-    // below and updateBealeGame's 'open' completion for where it resumes).
-    Sfx.stopMusic();
-    Sfx.startMiniGameMusic();
+    // (The mini-game's music already started when Mario landed - see
+    // updateBealeIntro() - not here.)
     game.state = 'minigame';
     game.memory = createMemoryGame(VIEW_W, VIEW_H, game.beale.marioFootX, game.beale.groundY - BEALE_MARIO_HEIGHT, game.beale.chestFootX);
     game.beale.phase = 'grid';
@@ -787,6 +790,7 @@ function handleBealeCanvasTap(clientX, clientY) {
   const won = handleCardTap(game.memory, x, y);
   if (won) {
     Sfx.stopMiniGameMusic();
+    Sfx.finalMatchTheme(); // plays through the chest's shake/pop/message-twirl
     game.beale.phase = 'burst';
     game.beale.chestTimer = 0;
     startCardScatter(game.memory); // plays the celebration cue; chest itself
@@ -899,6 +903,9 @@ function boot() {
   initBealeCardInput();
   loadBealeAssets();
   loadCardPhotos();
+  Sfx.loadMusicTracks(); // fire-and-forget: fetch+decode starts immediately,
+                          // well before the start-button tap that first
+                          // plays anything (only playback needs the gesture)
   resetLevel();
   game.state = 'start'; // wait for tap
   fitCanvas();
