@@ -13,7 +13,6 @@
 //   'g'  SECRET pipe top-left cap  / 'h' secret pipe top-right cap
 //   'G'  secret pipe body (below cap) - solid, visually identical to normal
 //   'F'  flagpole
-//   'C'  castle block
 // ---------------------------------------------------------------------------
 
 const TILE = 24;
@@ -130,10 +129,11 @@ function buildLevel() {
   const flagTopRow = GROUND_ROW - FLAGPOLE_HEIGHT;
   for (let r = flagTopRow; r < GROUND_ROW; r++) grid[r][flagCol] = 'F';
 
-  // --- Castle ---
-  for (let cc = flagCol + 4; cc < flagCol + 9; cc++) {
-    for (let r = GROUND_ROW - 2; r < GROUND_ROW; r++) grid[r][cc] = 'C';
-  }
+  // Past the flagpole there's just open ground - the Memphis Pyramid is
+  // drawn there as pure scenery (drawEndPyramid() in main.js, a real image
+  // rather than a tile) rather than a placed/collidable tile structure,
+  // since the flagpole always captures the player before they'd ever reach
+  // it on foot anyway.
 
   return { grid, SECRET_PIPE_COL, FLAG_COL: flagCol, FLAG_TOP_ROW: flagTopRow };
 }
@@ -150,7 +150,7 @@ function setTile(col, row, ch) {
 }
 function isSolid(ch) {
   return ch === '#' || ch === '?' || ch === 'B' || ch === 'P' || ch === 'T' || ch === 'U' ||
-         ch === 'G' || ch === 'g' || ch === 'h' || ch === 'C' || ch === 'x' /* used block */;
+         ch === 'G' || ch === 'g' || ch === 'h' || ch === 'x' /* used block */;
 }
 function isPipeCap(ch) { return ch === 'T' || ch === 'U' || ch === 'g' || ch === 'h'; }
 

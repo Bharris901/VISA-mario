@@ -144,6 +144,15 @@ body.secret-scene #btn-jump {
   white-space: pre-line;
   margin-bottom: 24px;
 }
+/* A secondary note under a message's main line (e.g. the clue's phone-order
+   hint) - noticeably smaller than the main text but still fully legible,
+   not just a faint aside. */
+.clue-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.72em;
+  opacity: 0.85;
+}
 
 /* ---------- Touch Controls ---------- */
 #controls {

@@ -2,9 +2,13 @@
 // Game orchestration: scene/state machine, camera, render loop.
 // ---------------------------------------------------------------------------
 
-// !!! Put the real scavenger-hunt clue text here before the event. !!!
+// Rendered as HTML (see UI.showMessage) so "when you order food" can be
+// bolded and the hint can be styled smaller (.clue-hint in style.css) while
+// staying clearly visible underneath the main clue line.
 const CLUE_MESSAGE =
-  "Congrats Memphis Mario!\n\n[PLACEHOLDER — insert real scavenger-hunt clue text here]";
+  "Congrats Memphis Mario!\n\n" +
+  "Head to Dim Sum King for lunch. Show your waiter the playing card from your bag <b>when you order food</b>.\n" +
+  "<span class=\"clue-hint\">(Hint: if you place an order over the phone you won’t be able to show your card)</span>";
 
 const BEALE_SPEECH_TEXT = "I need your help to match the cards in order to reveal the next clue! Tap to begin.";
 
@@ -285,7 +289,6 @@ function tileSprite(ch) {
     case '?': return SPRITES.questionBlock;
     case 'x': return SPRITES.usedBlock;
     case 'B': return SPRITES.brickTile;
-    case 'C': return SPRITES.solidBlock;
     case 'T': case 'g': return SPRITES.pipeTop;
     case 'U': case 'h': return null; // right cap drawn as part of left-cap image (double-wide draw handled below)
     case 'P': case 'G': return SPRITES.pipeBody;
@@ -318,6 +321,54 @@ function drawLevel(camX) {
   const poleCenterX = FLAG_COL * TILE - camX + TILE / 2;
   drawSprite(SPRITES.ball, poleCenterX - 8, poleTopY - 12, 16, 16);
   drawSprite(SPRITES.flag, poleCenterX - 14, poleTopY + 4, 24, 12);
+
+  drawEndPyramid(camX);
+}
+
+// A real (not tile-baked) 16-bit-style Memphis Pyramid, drawn as pure
+// scenery past the flagpole in place of the plain block cluster that used
+// to sit there - reuses the same card-pyramid.png the memory game's Pyramid
+// card already loads (via loadCardPhotos() in minigame.js) rather than a
+// second copy of the same art. Deliberately left unsmoothed (unlike the
+// real-photo assets in the Beale scene) - main.js's global
+// ctx.imageSmoothingEnabled = false is exactly right here, since this image
+// is itself pixel art and should render crisp/blocky like the rest of the
+// level's tiles, not softened.
+//
+// Gotcha: card-pyramid.png has an *opaque* white background baked in (it
+// was made to sit on a card's own white face, not against open sky), so
+// drawing it directly here shows a glaring white box behind the pyramid.
+// getEndPyramidCanvas() chroma-keys the near-white background to
+// transparent once, into a cached in-memory canvas - the actual asset file
+// on disk is never touched/re-exported, only this runtime copy.
+const END_PYRAMID_HEIGHT = TILE * 5; // on-screen px
+let endPyramidCanvas = null;
+function getEndPyramidCanvas() {
+  if (endPyramidCanvas) return endPyramidCanvas;
+  const img = cardPhotoImages.pyramid;
+  if (!cardPhotoLoaded.pyramid || !img || img.naturalWidth === 0) return null;
+  const off = document.createElement('canvas');
+  off.width = img.naturalWidth;
+  off.height = img.naturalHeight;
+  const octx = off.getContext('2d');
+  octx.drawImage(img, 0, 0);
+  const frame = octx.getImageData(0, 0, off.width, off.height);
+  const px = frame.data;
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i] > 235 && px[i + 1] > 235 && px[i + 2] > 235) px[i + 3] = 0;
+  }
+  octx.putImageData(frame, 0, 0);
+  endPyramidCanvas = off;
+  return endPyramidCanvas;
+}
+function drawEndPyramid(camX) {
+  const src = getEndPyramidCanvas();
+  if (!src) return;
+  const h = END_PYRAMID_HEIGHT;
+  const w = src.width * (h / src.height);
+  const x = (FLAG_COL + 4) * TILE - camX;
+  const y = GROUND_ROW * TILE - h;
+  ctx.drawImage(src, x, y, w, h);
 }
 
 function drawEnemies(camX) {

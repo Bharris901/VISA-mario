@@ -124,6 +124,22 @@ mushroom instead of a coin (growth if Mario is small, 1-up if already big -
 decided in `entities.js`'s `onHeadBump` at hit-time, not baked into the
 level).
 
+**End-of-level scenery (`drawEndPyramid` in `main.js`).** Past the flagpole
+there's no tile structure at all (no more `'C'` castle-block tiles - the
+flagpole always captures the player first, so it was always purely
+decorative and never actually reachable/collidable). Instead
+`drawEndPyramid()` draws a real image, `assets/card-pyramid.png` - the same
+file the memory game's Pyramid card already loads via `cardPhotoImages`/
+`cardPhotoLoaded` in `minigame.js`, not a second copy of the art - scaled to
+`END_PYRAMID_HEIGHT` and left unsmoothed (unlike the Beale scene's real
+images) since it's itself pixel art and should render crisp/blocky like the
+rest of the level. **Gotcha already hit once:** that file has an *opaque*
+white background baked in (it was made to sit on a card's own white face,
+not against open sky) - drawing it directly showed a glaring white box
+behind the pyramid. `getEndPyramidCanvas()` chroma-keys the near-white
+background to transparent once into a cached in-memory canvas; the actual
+asset file on disk is never touched.
+
 **Enemy spawn placement (`groundSurfaceRowAt`).** Spawn columns in
 `ENTITY_SPAWNS` aren't all flat ground (some sit on stair terrain, and some
 columns also have unrelated floating blocks above them, e.g. col 63 has
@@ -312,6 +328,18 @@ Mario takes damage). Comparing against the previous frame's position side-
 steps that entirely, since it doesn't matter how far Mario moved this frame.
 Apply the same "compare against last frame's state" pattern rather than an
 instantaneous-distance heuristic for any future contact-direction check.
+
+**Message overlay renders HTML, not plain text (`UI.showMessage` in
+`ui.js`).** It sets `messageText.innerHTML`, not `.textContent`, so a
+message string can bold a phrase or mark part of itself as a smaller
+secondary note - see `CLUE_MESSAGE`'s `<b>`/`<span class="clue-hint">` (the
+`.clue-hint` rule is in `style.css`; `white-space: pre-line` still honors
+plain `\n` line breaks the same as before, even mixed with inline tags).
+Every other message in the game is a plain string with no HTML-significant
+characters, so this was a safe superset of the old behavior for them - but
+any future message text that needs a literal `<`, `>`, or `&` would need to
+escape it first, since it's no longer auto-escaped the way `.textContent`
+used to guarantee.
 
 **Key config knobs a task will usually touch:**
 - `CLUE_MESSAGE`, `BEALE_SPEECH_TEXT`, `NOT_FOUND_MESSAGE`,

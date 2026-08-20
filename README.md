@@ -6,15 +6,15 @@ secret green pipe near the end of the level leads to a Beale Street scene
 game — 10 pairs of Memphis-themed icons. Winning it pops a treasure chest
 open with a scavenger-hunt clue. No app, no install — just a URL.
 
-All character/card art is original pixel/vector art drawn in code (not
-traced from any copyrighted source), tuned to feel close to the classic
-game; the Beale Street backdrop is a real photo-style illustration.
+Most level art (tiles, enemies, Mario's normal walk/jump sprite) is
+original pixel art drawn in code; the Beale Street backdrop, Mario and the
+treasure chest there, the memory-game card icons, and the end-of-level
+Memphis Pyramid are real provided images instead.
 
-## Before the event: one thing to fill in
-
-- **The clue text** — edit `CLUE_MESSAGE` at the top of `js/main.js`. It's
-  shown as "Congrats Memphis Mario!" followed by whatever text you put
-  there, inside the treasure chest's message screen.
+The real scavenger-hunt clue is already set in `CLUE_MESSAGE` at the top of
+`js/main.js`, shown as "Congrats Memphis Mario!" followed by the clue
+inside the treasure chest's message screen — update it there if the clue
+ever needs to change.
 
 ## Running it locally
 

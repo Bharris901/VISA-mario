@@ -39,9 +39,14 @@ const UI = {
   },
 
   // `icon`, if given, is a baked sprite canvas (e.g. SPRITES.grimaceFace)
-  // shown above the message text.
+  // shown above the message text. `text` is rendered as HTML (not plain
+  // text) so a message can bold a phrase or mark part of itself as a
+  // smaller secondary hint (see CLUE_MESSAGE in main.js and the
+  // .clue-hint rule in style.css) - every other message in the game is a
+  // plain string with no HTML-significant characters, so this is a safe
+  // superset of the old textContent behavior for them.
   showMessage(text, onContinue, buttonLabel = 'CONTINUE', icon = null) {
-    this.messageText.textContent = text;
+    this.messageText.innerHTML = text;
     this.messageBtn.textContent = buttonLabel;
     if (icon) {
       const ictx = this.messageIcon.getContext('2d');
