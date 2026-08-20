@@ -200,6 +200,32 @@ same row/column count with no dead padding rows — a mismatch reads as the
 character floating or resizing between frames, since draw size/offset is
 derived from each sprite's actual canvas dimensions.
 
+**Pipe art (`pipeTop`/`pipeBody` in `js/sprites.js`).** Unlike most other
+sprites, these are baked at native SCREEN resolution (`PIPE_W = 48`/`PIPE_H
+= 24`, matching `TILE*2`/`TILE` from `level.js` - written as literal
+numbers rather than references to `TILE`, since `sprites.js` loads *before*
+`level.js` and can't read its top-level `const` yet) rather than being
+baked small and scaled up, so the black outline/color bands/crosshatch
+texture stay crisp instead of blocky. `PIPE_BANDS` lists the vertical color
+bands left-to-right (a thin dark stripe, a highlight, a divider, another
+highlight, a flat matte mid-green, then a crosshatch band resolved
+per-pixel in `pipeColorAt()`); `pipeRow()` applies the black border/lip on
+top of that. The body is baked as ONE double-wide image spanning both tile
+columns a pipe occupies (like the cap already was) so the band/crosshatch
+pattern reads as one continuous tube rather than a mirrored/repeated pair -
+`level.js`'s `pipe()` now writes distinct left/right body tile chars
+(`'P'`/`'Q'`, or `'G'`/`'H'` for the secret pipe) the same way the cap
+already had distinct `'T'`/`'U'` (`'g'`/`'h'`) chars, and `isPipeBodyLeft()`
+(`level.js`) plus the `'Q'`/`'H'` → `null` cases in `tileSprite()`
+(`main.js`) mirror the existing `isPipeCap()`/`'U'`/`'h'` pattern exactly.
+The cap's bottom rows are black (a 3px lip) while the body has **no**
+top/bottom border at all - only left/right edges - so stacking multiple
+body tiles for a taller pipe reads as one seamless tube with no repeating
+horizontal "rung" line at each tile boundary. The secret pipe reuses the
+exact same sprites as a normal pipe (only the tile *characters* differ, not
+the art), so the "must look identical, by design" invariant holds
+automatically - verified visually side-by-side after this redesign.
+
 **Secret room + memory-matching mini-game.** `secretRoom.js` draws the Beale
 Street scene's backdrop as a real photo (`assets/beale-street-bg.png`, "cover"
 -fit via `drawBealeBackground()`), plus real static images for Mario

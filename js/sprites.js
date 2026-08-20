@@ -34,7 +34,8 @@ const PAL = {
   block: { '.': null, 'y':'#fbd000', 'o':'#c98800', 'k':'#7a4b00' },
   brick: { '.': null, 'r':'#c9682a', 'd':'#8f4718' },
   ground: { '.': null, 'g':'#c98800', 'd':'#8f5c00', 'k':'#5c3a00' },
-  pipe: { '.': null, 'g':'#00a852', 'd':'#00782e', 'l':'#5ce87a' },
+  // Redefined further down, right before pipeTop/pipeBody are baked - the
+  // redesigned pipe needs more than the 3 tones this original palette had.
   misc: { '.': null, 'w':'#ffffff', 'y':'#fbd000', 'g':'#00a852', 'k':'#000000', 'r':'#e52521', 'br':'#8f4718' },
   coin: { '.': null, 'k':'#000000', 'y':'#f0b429', 'd':'#c9932a', 'w':'#fff8e6' },
   qblock: { '.': null, 'o':'#c9861a', 'y':'#ffcf3f', 'k':'#fff6d8', 'b':'#5a3d00' },
@@ -392,20 +393,70 @@ const brickTile = M([
 ], PAL.brick);
 const solidBlock = M(Array(16).fill(0).map((_,i)=> i===0||i===15 ? 'kkkkkkkkkkkkkkkk' : 'k'+ 'o'.repeat(14)+'k'), PAL.block);
 
-// Note: previously the lower cap rows and every body row were framed with a
-// fully-transparent '.' column at each edge. Each pipe tile is drawn as its
-// own independent tile, so two adjacent tiles' transparent edges met at the
-// seam and showed as a thin vertical gap revealing the sky behind - the
-// reported "blue line down the pipe". Every row below is now the same solid
-// 16-wide pattern (no transparent pixels anywhere) so there's no seam gap.
-const PIPE_ROW = 'lgddddddddddddgg'; // 16 wide, fully opaque
-const pipeTop = M([
-  'llddddddddddddgg',
-  PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW,
-  PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW,
-  PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW, PIPE_ROW,
-], PAL.pipe);
-const pipeBody = M(Array(16).fill(PIPE_ROW), PAL.pipe);
+// Note (historical): previously the lower cap rows and every body row were
+// framed with a fully-transparent '.' column at each edge. Each pipe tile is
+// drawn as its own independent tile, so two adjacent tiles' transparent
+// edges met at the seam and showed as a thin vertical gap revealing the sky
+// behind - the reported "blue line down the pipe". The redesign below keeps
+// that fix (no transparent pixels anywhere in the interior) while also
+// giving the pipe a proper black outline, banded color fill, and a
+// crosshatch-textured band, matching a reference illustration.
+//
+// Baked at native SCREEN resolution rather than scaled up like most other
+// sprites here (PIPE_W/PIPE_H match TILE*2/TILE from level.js - written as
+// literal numbers, not references to TILE, since sprites.js loads before
+// level.js and can't read its top-level const yet): the finer banding and
+// crosshatch texture need more detail than the old 16px-wide native art
+// could hold without visible scaling blockiness.
+//
+// The body is baked as ONE double-wide image spanning both tile columns a
+// pipe occupies (like the cap already was), not the same single-tile image
+// drawn twice - see isPipeBodyLeft()/tileSprite()/drawLevel() in main.js and
+// the 'Q'/'H' "right half, already drawn" tile chars in level.js. Baking it
+// this way means the band/crosshatch pattern reads as one continuous tube
+// rather than a mirrored/repeated pair.
+PAL.pipe = { '.': null, 'k':'#000000', 'l':'#a8e05a', 'm':'#5aa83f', 'd':'#3d7a2e', 'h':'#4f9436' };
+const PIPE_W = 48; // TILE * 2
+const PIPE_H = 24; // TILE
+const PIPE_BORDER = 2; // black outline thickness, in native px
+// Vertical color bands across the interior (cols 2..45), left to right:
+// a thin dark stripe, a bright highlight, a thin divider, another highlight,
+// a flat matte mid-green, then a crosshatch/mesh band near the right edge.
+// 'x' is resolved per-pixel in pipeColorAt() below (the crosshatch band).
+const PIPE_BANDS = [
+  [2, 5, 'd'], [5, 15, 'l'], [15, 17, 'd'], [17, 25, 'l'], [25, 37, 'm'], [37, 46, 'x'],
+];
+function pipeColorAt(col, row) {
+  for (const [c0, c1, color] of PIPE_BANDS) {
+    if (col < c0 || col >= c1) continue;
+    if (color !== 'x') return color;
+    // Crosshatch/mesh texture: alternating 2x2 blocks of two dark greens.
+    return (Math.floor((col - c0) / 2) + Math.floor(row / 2)) % 2 === 0 ? 'd' : 'h';
+  }
+  return 'm'; // unreachable - PIPE_BANDS covers the full interior
+}
+function pipeRow(row, blackRow) {
+  let s = '';
+  for (let col = 0; col < PIPE_W; col++) {
+    const edgeCol = col < PIPE_BORDER || col >= PIPE_W - PIPE_BORDER;
+    s += (blackRow || edgeCol) ? 'k' : pipeColorAt(col, row);
+  }
+  return s;
+}
+// Cap: solid black border all the way around, with a slightly thicker
+// bottom lip (reads as the rim that separates the cap from the body).
+const pipeTop = M(
+  Array.from({ length: PIPE_H }, (_, row) =>
+    pipeRow(row, row < PIPE_BORDER || row >= PIPE_H - (PIPE_BORDER + 1))),
+  PAL.pipe
+);
+// Body: black border on the left/right edges only, no top/bottom bar, so
+// stacking body tiles for a taller pipe reads as one continuous tube with
+// no horizontal "rung" line at each tile boundary.
+const pipeBody = M(
+  Array.from({ length: PIPE_H }, (_, row) => pipeRow(row, false)),
+  PAL.pipe
+);
 
 // Round gold coin (matches the reference art) - used both for the HUD icon
 // and the pop animation when a coin block is hit, replacing the previous

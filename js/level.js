@@ -8,10 +8,15 @@
 //   '#'  solid ground / block
 //   '?'  question block (coin or mushroom)
 //   'B'  breakable brick
-//   'P'  pipe body (decorative, solid)
+//   'P'  pipe body, LEFT column / 'Q' pipe body, RIGHT column (decorative,
+//        solid) - distinct chars (like the cap's 'T'/'U') so the body can be
+//        baked+drawn as one continuous double-wide image instead of the same
+//        tile mirrored twice; see isPipeBodyLeft() and tileSprite()/drawLevel()
+//        in main.js.
 //   'T'  pipe top-left cap tile / 'U' top-right cap tile (decorative, solid)
 //   'g'  SECRET pipe top-left cap  / 'h' secret pipe top-right cap
-//   'G'  secret pipe body (below cap) - solid, visually identical to normal
+//   'G'  secret pipe body, LEFT column / 'H' secret pipe body, RIGHT column -
+//        solid, visually identical to normal ('P'/'Q')
 //   'F'  flagpole
 // ---------------------------------------------------------------------------
 
@@ -35,7 +40,7 @@ function buildLevel() {
     grid[top][col + 1] = secret ? 'h' : 'U';
     for (let r = top + 1; r < GROUND_ROW; r++) {
       grid[r][col] = secret ? 'G' : 'P';
-      grid[r][col + 1] = secret ? 'G' : 'P';
+      grid[r][col + 1] = secret ? 'H' : 'Q';
     }
     return { col, top };
   };
@@ -149,10 +154,14 @@ function setTile(col, row, ch) {
   LEVEL.grid[row][col] = ch;
 }
 function isSolid(ch) {
-  return ch === '#' || ch === '?' || ch === 'B' || ch === 'P' || ch === 'T' || ch === 'U' ||
-         ch === 'G' || ch === 'g' || ch === 'h' || ch === 'x' /* used block */;
+  return ch === '#' || ch === '?' || ch === 'B' || ch === 'P' || ch === 'Q' || ch === 'T' || ch === 'U' ||
+         ch === 'G' || ch === 'H' || ch === 'g' || ch === 'h' || ch === 'x' /* used block */;
 }
 function isPipeCap(ch) { return ch === 'T' || ch === 'U' || ch === 'g' || ch === 'h'; }
+// The LEFT half of a double-wide pipe body tile pair - drawn as one
+// continuous 2-tile-wide image (see drawLevel() in main.js), same pattern as
+// isPipeCap()'s 'T'/'g' left-cap chars.
+function isPipeBodyLeft(ch) { return ch === 'P' || ch === 'G'; }
 
 // Finds the row an entity standing in this column should rest on. Spawn
 // columns aren't all flat ground (some sit on stair-step terrain of

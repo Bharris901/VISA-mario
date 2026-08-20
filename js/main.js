@@ -293,7 +293,8 @@ function tileSprite(ch) {
     case 'B': return SPRITES.brickTile;
     case 'T': case 'g': return SPRITES.pipeTop;
     case 'U': case 'h': return null; // right cap drawn as part of left-cap image (double-wide draw handled below)
-    case 'P': case 'G': return SPRITES.pipeBody;
+    case 'P': case 'G': return SPRITES.pipeBody; // baked double-wide; spans both body columns
+    case 'Q': case 'H': return null; // right body column drawn as part of the left column's image, above
     case 'F': return SPRITES.flagpoleTile;
     default: return null;
   }
@@ -305,12 +306,12 @@ function drawLevel(camX) {
   for (let col = firstCol; col <= lastCol; col++) {
     for (let row = 0; row < ROWS; row++) {
       const ch = tileAt(col, row);
-      if (ch === ' ' || ch === 'U' || ch === 'h') continue;
+      if (ch === ' ' || ch === 'U' || ch === 'h' || ch === 'Q' || ch === 'H') continue;
       const spr = tileSprite(ch);
       if (!spr) continue;
       const x = col * TILE - camX;
       const y = row * TILE;
-      if (isPipeCap(ch)) {
+      if (isPipeCap(ch) || isPipeBodyLeft(ch)) {
         drawSprite(spr, x, y, TILE * 2, TILE);
       } else {
         drawSprite(spr, x, y, TILE, TILE);
