@@ -43,13 +43,17 @@ const PAL = {
   goomba: { '.': null, 'b':'#5c2b03', 's':'#e9bf85', 'k':'#000000' },
   koopa: { '.': null, 'g':'#00a852', 'y':'#fbd000', 'w':'#ffffff', 'k':'#000000', 'd':'#00782e' },
   block: { '.': null, 'y':'#fbd000', 'o':'#c98800', 'k':'#7a4b00' },
-  brick: { '.': null, 'r':'#c9682a', 'd':'#8f4718' },
+  // Redesigned to match a reference image - black mortar lines instead of
+  // this original 2-tone (no-black) look.
+  brick: { '.': null, 'r':'#92531c', 'k':'#000000' },
   ground: { '.': null, 'g':'#c98800', 'd':'#8f5c00', 'k':'#5c3a00' },
   // Redefined further down, right before pipeTop/pipeBody are baked - the
   // redesigned pipe needs more than the 3 tones this original palette had.
   misc: { '.': null, 'w':'#ffffff', 'y':'#fbd000', 'g':'#00a852', 'k':'#000000', 'r':'#e52521', 'br':'#8f4718' },
   coin: { '.': null, 'k':'#000000', 'y':'#f0b429', 'd':'#c9932a', 'w':'#fff8e6' },
-  qblock: { '.': null, 'o':'#c9861a', 'y':'#ffcf3f', 'k':'#fff6d8', 'b':'#5a3d00' },
+  // Redesigned to match a reference image: 'y' fill, 'o' corner bolts, 'w'
+  // the "?" mark - no black outline/border tone, the source art is flat.
+  qblock: { '.': null, 'y':'#f8d648', 'o':'#eb983f', 'w':'#ffffff' },
   face: { '.': null, 'y':'#ffcc4d', 'd':'#e0a233', 'k':'#664500', 'w':'#ffffff' },
 };
 
@@ -486,28 +490,30 @@ const mushroom1upSprite = M([
 ], PAL.mushroom);
 
 // --- Blocks / terrain, 16x16 tiles ---
-// Rounded corners + corner bolts + a bold white "?" (reusing the original
-// mark's proven shape, just recolored) to match the reference block art.
-// A bolder, blockier "?" (thick hook + stem + dot) - the previous mark used
-// thin diagonal strokes to approximate a curve, which read as a fuzzy blob
-// at this resolution rather than a clearly legible question mark.
+// Question block, redesigned to match a reference image - derived from that
+// image the same way as Mario/goomba/mushroom above: classified to its own
+// 3 flat colors (yellow fill, orange corner bolts, white "?" mark - no
+// black outline, the source art is flat) and downsampled with a
+// majority-vote pool, rather than hand-typed. The "?" mark's rounder,
+// more naturalistic shape (vs. the previous hand-typed blocky mark) is a
+// direct result of that - it's the actual reference shape, not a redraw.
 const questionBlock = M([
-  '.oooooooooooooo.',
-  'oybyyyyyyyyyybyo',
-  'oyyyykkkkkkyyyyo',
-  'oyyyykkkkkkyyyyo',
-  'oyyyyyyyykkyyyyo',
-  'oyyyyyyyykkyyyyo',
-  'oyyyyykkkkyyyyyo',
-  'oyyyyyykkyyyyyyo',
-  'oyyyyyykkyyyyyyo',
-  'oyyyyyyyyyyyyyyo',
-  'oyyyyyykkyyyyyyo',
-  'oyyyyyykkyyyyyyo',
-  'oyyyyyyyyyyyyyyo',
-  'oyyyyyyyyyyyyyyo',
-  'oybyyyyyyyyyybyo',
-  '.oooooooooooooo.',
+  'yyyyyyyyyyyyyyyy',
+  'yoyyyyyyyyyyyyoy',
+  'yyywwwwwwwwwwyyy',
+  'yywwwwwwwwwwwyyy',
+  'yywwwwyyyywwwyyy',
+  'yywwwwyyyywwwyyy',
+  'yyywwyyyyywwwyyy',
+  'yyyyyyywwwwwwyyy',
+  'yyyyyywwwwwwyyyy',
+  'yyyyyywwwwyyyyyy',
+  'yyyyyywwwwyyyyyy',
+  'yyyyyyyyyyyyyyyy',
+  'yyyyyyywwyyyyyyy',
+  'yyyyyywwwwyyyyyy',
+  'yoyyyyyyyyyyyyoy',
+  'yyyyyyyyyyyyyyyy',
 ], PAL.qblock);
 const usedBlock = M(Array(16).fill('oooooooooooooooo').map((r,i)=> i===0||i===15? r : 'o'+ 'k'.repeat(14)+'o'), PAL.block);
 const groundTile = M([
@@ -528,23 +534,32 @@ const groundTile = M([
   'gddddddddddddddg',
   'gggggggggggggggg',
 ], PAL.ground);
+// Brick block, redesigned to match a reference image: a bold black outline
+// framing the whole tile plus black mortar lines between individual
+// bricks, in the classic running-bond layout (alternating rows of 2 full
+// bricks / 3 bricks with half-width ones at each end) - built geometrically
+// rather than downsampled from the reference photo, since that photo's
+// mortar lines were too soft/blurry to reproduce crisply at this
+// resolution; the reference's small center notch at the top edge is kept
+// (row 1, cols 7-8). The reference also shows a thin blue sliver along one
+// edge - not reproduced here, per instruction to use only the black/brown.
 const brickTile = M([
-  'dddddddddddddddd',
-  'rrrrrrrrrrrrrrrr',
-  'rrrrrrrrrrrrrrrr',
-  'dddddddddddddddd',
-  'rrrrrrrdrrrrrrrr',
-  'rrrrrrrdrrrrrrrr',
-  'dddddddddddddddd',
-  'rrrrrrrrrrrrrrrr',
-  'rrrrrrrrrrrrrrrr',
-  'dddddddddddddddd',
-  'rdrrrrrrrrrrrrrr',
-  'rdrrrrrrrrrrrrrr',
-  'dddddddddddddddd',
-  'rrrrrrrrrrrrrrrr',
-  'rrrrrrrrrrrrrrrr',
-  'dddddddddddddddd',
+  'kkkkkkkkkkkkkkkk',
+  'krrrkrrkkrrkrrrk',
+  'krrrkrrrrrrkrrrk',
+  'krrrkrrrrrrkrrrk',
+  'krrrkrrrrrrkrrrk',
+  'kkkkkkkkkkkkkkkk',
+  'krrrrrrkrrrrrrrk',
+  'krrrrrrkrrrrrrrk',
+  'krrrrrrkrrrrrrrk',
+  'krrrrrrkrrrrrrrk',
+  'kkkkkkkkkkkkkkkk',
+  'krrrkrrrrrrkrrrk',
+  'krrrkrrrrrrkrrrk',
+  'krrrkrrrrrrkrrrk',
+  'krrrkrrrrrrkrrrk',
+  'kkkkkkkkkkkkkkkk',
 ], PAL.brick);
 const solidBlock = M(Array(16).fill(0).map((_,i)=> i===0||i===15 ? 'kkkkkkkkkkkkkkkk' : 'k'+ 'o'.repeat(14)+'k'), PAL.block);
 

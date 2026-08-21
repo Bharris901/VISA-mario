@@ -299,6 +299,32 @@ cap keeps a highlight/shadow look instead of going flat; this preserves the
 established convention that 1-up has no literal red spots while still
 getting the redesign's shape detail.
 
+**Question block (`questionBlock` in `js/sprites.js`).** Same
+reference-derived redesign approach again (classify to the reference's own
+3 flat colors - yellow fill, orange corner bolts, white "?" mark, no black
+anywhere - then downsample with a majority-vote pool), baked at 16x16.
+`PAL.qblock` was updated to these 3 tones (dropped the old 4th "cream"/`'k'`
+tone and the separate dark-brown bolt-outline `'b'` tone - the reference art
+doesn't have either). The tile is now fully opaque edge-to-edge (no
+transparent corner pixels like the old hand-typed version had) since the
+reference shows a solid square block with no rounding baked into the tile
+art itself.
+
+**Brick block (`brickTile` in `js/sprites.js`).** Also redesigned to match
+a reference image (bold black outline + black mortar lines on a brown
+brick fill, classic running-bond layout - alternating rows of 2 full bricks
+/ 3 bricks with half-width ones at each end), but built *geometrically*
+rather than downsampled from the photo like the others above: that
+reference's mortar lines were soft/blurry (a photographed or rendered
+image, not flat cel-shaded art like the goomba/mushroom/question-block
+references), and downsampling blur straight into a 16x16 grid produced
+muddy, inconsistent line thickness rather than the crisp black lines the
+reference is clearly going for. `PAL.brick` dropped its old 2-tone (no
+black) look for a `'r'` fill + `'k'` mortar/outline pair. The reference
+image also had a thin blue sliver bordering one edge (an artifact of
+whatever tool produced it) - per instruction, that's not reproduced; only
+black and brown appear in the tile.
+
 **Pipe art (`pipeTop`/`pipeBody` in `js/sprites.js`).** Unlike most other
 sprites, these are baked at native SCREEN resolution (`PIPE_W = 48`/`PIPE_H
 = 24`, matching `TILE*2`/`TILE` from `level.js` - written as literal
