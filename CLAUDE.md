@@ -533,6 +533,26 @@ any future message text that needs a literal `<`, `>`, or `&` would need to
 escape it first, since it's no longer auto-escaped the way `.textContent`
 used to guarantee.
 
+**Overlay cards (`.start-card`/`.message-card` in `style.css`).** `.overlay`
+centers its card via flex, but that only centers the *card* as a whole -
+inside it, a narrower block-level child (the hint box, the button) needs
+its own `margin: 0 auto` to actually center, since `.overlay`'s
+`text-align: center` only affects inline content, not a block's own box.
+**Gotcha already hit once:** this was invisible while the start button's
+label was short ("TAP TO START"), since every child happened to be close
+enough in width that the missing `margin: auto` didn't read as obviously
+off-center - it became a visible bug the moment the label grew into a full
+sentence and widened the button (and therefore the card) well past the
+hint box's fixed `max-width`. Font sizes here are also `clamp()`ed with a
+`vw + vh` expression, not just `vw` - a pure-`vw` clamp doesn't shrink at
+all on a viewport that's short but wide (a phone landscape with a lot of
+browser chrome eating the height), which is exactly the case that let this
+card's content overflow off the bottom of a real short screen with no way
+to reach the button (the global `touch-action: none` blocks scrolling
+everywhere else in the game). `.overlay` now also carries `overflow-y:
+auto` + `touch-action: pan-y` as a fallback of last resort, in case some
+future content is too tall to fit even after the above.
+
 **Key config knobs a task will usually touch:**
 - `CLUE_MESSAGE`, `BEALE_SPEECH_TEXT`, `NOT_FOUND_MESSAGE`,
   `FOUND_BUT_FINISHED_MESSAGE` — top of `main.js`.

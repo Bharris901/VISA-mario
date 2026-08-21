@@ -94,6 +94,14 @@ body.secret-scene #btn-jump {
   z-index: 50;
   text-align: center;
   padding: 20px;
+  /* Fallback for a viewport too short to fit the card at all (a phone
+     landscape with a lot of browser chrome eating the height) - content
+     normally fits without scrolling, this just means it's reachable rather
+     than physically cut off with no way to get to it. touch-action: pan-y
+     overrides the global `touch-action: none` (see the top of this file)
+     just for these momentary text/button overlays, not gameplay itself. */
+  overflow-y: auto;
+  touch-action: pan-y;
 }
 .overlay.hidden { display: none; }
 
@@ -109,37 +117,57 @@ body.secret-scene #btn-jump {
 }
 .rotate-card p { font-size: 16px; line-height: 1.4; }
 
+/* max-width + margin: 0 auto so the card (and anything inside it narrower
+   than its widest child - the hint box, the button) stays centered as a
+   block, not just text-aligned - `.overlay`'s text-align: center alone only
+   centers *inline* content, not a block-level child's own box. Sized with
+   vh as well as vw so it shrinks on a short-but-wide viewport (a phone
+   landscape with a lot of browser chrome eating the height), not just a
+   narrow one - a pure vw-based clamp doesn't react to height at all, which
+   is exactly what let this overflow off the bottom of a real short screen. */
+.start-card {
+  max-width: min(92vw, 420px);
+  margin: 0 auto;
+}
 .start-card h1 {
-  font-size: clamp(28px, 6vw, 48px);
+  font-size: clamp(22px, 4vw + 2vh, 44px);
   color: #fbd000;
   text-shadow: 3px 3px 0 #e52521, 6px 6px 0 #000;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
   letter-spacing: 2px;
 }
-.start-card .sub { opacity: 0.8; margin: 0 0 22px 0; font-size: 14px; }
+.start-card .sub { opacity: 0.8; margin: 0 0 12px 0; font-size: clamp(11px, 1.6vw + 0.8vh, 14px); }
 .start-card .hint {
   color: #fff;
   font-weight: bold;
-  font-size: clamp(14px, 2.4vw, 19px);
-  line-height: 1.5;
+  font-size: clamp(12px, 1.6vw + 1vh, 18px);
+  line-height: 1.4;
   background: rgba(255,255,255,0.1);
   border: 2px solid rgba(251,208,0,0.7);
   border-radius: 8px;
-  padding: 12px 18px;
-  margin: 0 0 24px 0;
-  max-width: 340px;
+  padding: 8px 14px;
+  margin: 0 auto 14px auto;
+  max-width: 320px;
 }
 #start-btn, #message-btn {
   font-family: inherit;
-  font-size: clamp(16px, 3vw, 22px);
+  font-size: clamp(12px, 1.8vw + 1vh, 19px);
   font-weight: bold;
-  padding: 14px 28px;
+  padding: 10px 16px;
   background: #e52521;
   color: #fff;
   border: 4px solid #fff;
   border-radius: 6px;
   cursor: pointer;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  /* block + max-width + auto margins (rather than the default inline-block
+     sizing to its own text) so a long label - "Turn on sound, then tap
+     here to start" - wraps and keeps real margin on both sides instead of
+     stretching edge-to-edge on a narrow phone. */
+  display: block;
+  max-width: 90%;
+  margin: 0 auto;
+  white-space: normal;
 }
 #start-btn:active, #message-btn:active { transform: scale(0.96); }
 
