@@ -28,13 +28,18 @@ function bakeSprite(rows, palette) {
 }
 
 const PAL = {
-  mario: { '.': null, 'r':'#e52521', 's':'#8b3a00', 'k':'#ffcc99', 'y':'#fbd000', 'w':'#ffffff', 'b':'#000000', 'g':'#00a852' },
-  // Mario's own redesigned sprites (see marioBigStand etc. below) use this
-  // separate palette rather than reusing 'mario' above, even though the key
-  // letters overlap ('g'/'r'/'k') - the growth/1-up mushroom sprites still
-  // reference PAL.mario's original colors directly, so redefining those
-  // would have silently recolored the mushrooms too.
+  // Mario's own redesigned sprites (see marioBigStand etc. below) use their
+  // own separate palette rather than a shared 'mario' one - the growth/1-up
+  // mushroom sprites below are unrelated art (their own reference image, own
+  // redesign) and have their own palette (PAL.mushroom) too, so nothing here
+  // needs shared colors across the two.
   heroMario: { '.': null, 'g':'#6f6d23', 'r':'#a23f2e', 'k':'#d7a75b' },
+  // Growth/1-up mushroom, redesigned to match a reference image (see
+  // mushroomSprite below) - orange/tan cap with dark red spots, white stem.
+  // 1-up reuses the same shape recolored green, with the spot regions
+  // shaded a darker green ('d') instead of literal red spots, for a subtle
+  // highlight/shadow look rather than a flat single-tone cap.
+  mushroom: { '.': null, 'o':'#db9f3f', 'r':'#a73c2a', 'w':'#ffffff', 'g':'#00a852', 'd':'#00782e' },
   goomba: { '.': null, 'b':'#5c2b03', 's':'#e9bf85', 'k':'#000000' },
   koopa: { '.': null, 'g':'#00a852', 'y':'#fbd000', 'w':'#ffffff', 'k':'#000000', 'd':'#00782e' },
   block: { '.': null, 'y':'#fbd000', 'o':'#c98800', 'k':'#7a4b00' },
@@ -53,8 +58,8 @@ const M = (rows, pal) => bakeSprite(rows, pal);
 // --- Mario (small), redesigned to match a higher-detail reference: rounder
 // cap/head silhouette, a distinct mustache, and a more natural walking
 // stride, at higher native resolution (18x18, up from the old 16x14) so the
-// extra shape detail stays crisp rather than blocky. Uses PAL.heroMario
-// (see above), not PAL.mario. ---
+// extra shape detail stays crisp rather than blocky. Uses its own palette,
+// PAL.heroMario (see above). ---
 
 const marioSmallStand = M([
   '......rrrrr.......',
@@ -435,46 +440,50 @@ const koopaShell = M([
 ], PAL.koopa);
 const KOOPA = { walk: [koopaWalk1, koopaWalk2], shell: koopaShell };
 
-// --- Mushroom power-up, 16x16 ---
+// --- Growth mushroom power-up, redesigned to match a reference image, and
+// baked at exactly 16x16 for the same reason as the goomba above -
+// drawMushrooms() (main.js) always draws at a fixed 16x16 regardless of the
+// sprite's own canvas size, so that's the natural bake size for a clean 1:1
+// blit. ---
 const mushroomSprite = M([
-  '................',
-  '.....rrrrrr.....',
-  '...rrrrrrrrrr...',
-  '..rrwwrrrrwwrr..',
-  '.rrwwwrrrrwwwrr.',
-  '.rrrrrrrrrrrrrr.',
-  '.rrrrrrrrrrrrrr.',
-  '..wwwwwwwwwwww..',
-  '..wkkkkkkkkkkw..',
-  '..wkwwwwwwwwkw..',
-  '..wkw......wkw..',
-  '..wkw......wkw..',
-  '...kk......kk...',
-  '................',
-  '................',
-  '................',
-], PAL.mario);
+  '......oooo......',
+  '.....oooorr.....',
+  '....oooorrrr....',
+  '...ooooorrrrr...',
+  '..ooooooorrroo..',
+  '.oorrrooooooooo.',
+  '.orrrrroooooooo.',
+  'oorrrrrooooorroo',
+  'oorrrrrooooorrro',
+  'ooorrrooooooorro',
+  'oooooooooooooooo',
+  '.orrrwwwwwwrrro.',
+  '....wwwwwwww....',
+  '....wwwwwwow....',
+  '....wwwwwwow....',
+  '.....wwwwow.....',
+], PAL.mushroom);
 
-// 1-up mushroom (green cap) - same shape as the growth mushroom, awarded
-// instead of a growth mushroom when Mario is already big.
+// 1-up mushroom (green cap) - same silhouette as the growth mushroom above,
+// awarded instead of a growth mushroom when Mario is already big.
 const mushroom1upSprite = M([
-  '................',
-  '.....gggggg.....',
-  '...gggggggggg...',
-  '..ggwwggggwwgg..',
-  '.ggwwwggggwwwgg.',
-  '.gggggggggggggg.',
-  '.gggggggggggggg.',
-  '..wwwwwwwwwwww..',
-  '..wkkkkkkkkkkw..',
-  '..wkwwwwwwwwkw..',
-  '..wkw......wkw..',
-  '..wkw......wkw..',
-  '...kk......kk...',
-  '................',
-  '................',
-  '................',
-], PAL.mario);
+  '......gggg......',
+  '.....ggggdd.....',
+  '....ggggdddd....',
+  '...gggggddddd...',
+  '..gggggggdddgg..',
+  '.ggdddggggggggg.',
+  '.gdddddgggggggg.',
+  'ggdddddgggggddgg',
+  'ggdddddgggggdddg',
+  'gggdddgggggggddg',
+  'gggggggggggggggg',
+  '.gdddwwwwwwdddg.',
+  '....wwwwwwww....',
+  '....wwwwwwgw....',
+  '....wwwwwwgw....',
+  '.....wwwwgw.....',
+], PAL.mushroom);
 
 // --- Blocks / terrain, 16x16 tiles ---
 // Rounded corners + corner bolts + a bold white "?" (reusing the original

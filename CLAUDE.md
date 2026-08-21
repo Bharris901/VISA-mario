@@ -210,17 +210,21 @@ majority-vote pool to the target resolution, and quantized to 3 flat colors
 (no black outline/shading in the source art) - rather than hand-typed from
 scratch, so the shapes stay faithful to the reference. They use their own
 palette, `PAL.heroMario` (`'g'`/`'r'`/`'k'` = overalls-or-shirt green /
-cap-or-overalls red / skin tan), instead of `PAL.mario` - even though the
-key letters overlap, redefining `PAL.mario`'s colors directly would have
-also recolored the growth/1-up mushroom sprites, which still reference it.
+cap-or-overalls red / skin tan) - a dedicated palette rather than a shared
+one, since the growth/1-up mushroom sprites are unrelated art with their
+own reference image and their own palette (`PAL.mushroom`, see below).
 Each of the 8 poses is its own independent grid rather than sharing a common
 head/torso prefix (the old small-file's `bigFrame()` helper) - the new
 poses lean and shift enough through the shoulders that no shared prefix fits
-all four frames anymore. `MARIO_DRAW_SCALE` (`main.js`) was lowered from
-`1.5` to `5/6` to compensate for the higher native resolution, keeping big
-Mario's on-screen height about the same as before - small Mario ends up
-proportionally smaller relative to big Mario than he used to be as a
-result (closer to the reference art's own size ratio between the two).
+all four frames anymore. `MARIO_DRAW_SCALE` (`main.js`) is `1` (was `1.5`
+before this redesign, briefly `5/6` right after it to compensate for the
+higher native resolution and keep big Mario's on-screen height unchanged,
+then bumped back up to `1` on top of that - reference screenshots showed
+Mario reading a little small next to the pipes, and since pipes/tiles were
+staying the same size, Mario alone needed to grow). Small Mario ends up
+proportionally smaller relative to big Mario than he used to be pre-redesign
+(closer to the reference art's own size ratio between the two), independent
+of this overall scale bump - both sizes grew by the same factor.
 
 **Goomba's sprites (`goombaWalk1`/`goombaWalk2`/`goombaSquish` in
 `js/sprites.js`).** Redesigned the same reference-derived way as Mario
@@ -235,6 +239,21 @@ visual benefit - 18x16 *is* that fixed draw size, so the bake is an exact
 foot row shifted one column for a subtle step; `goombaSquish` reuses the
 head/face rows (no feet) compressed into the bottom of the same 18x16
 canvas, matching the original squish sprite's approach.
+
+**Mushroom power-ups (`mushroomSprite`/`mushroom1upSprite` in
+`js/sprites.js`).** Same reference-derived redesign again (orange/tan cap
+with dark red spots, white stem), baked at exactly 16x16 for the same
+"matches the fixed draw size, so it's a 1:1 blit" reason as the goomba -
+`drawMushrooms()` (`main.js`) always draws at a fixed 16x16 regardless of
+the sprite's own canvas size. Both mushrooms now share a dedicated
+`PAL.mushroom` palette instead of the old `PAL.mario` (which is gone
+entirely - nothing else used it once Mario's own sprites moved to
+`PAL.heroMario`). The 1-up variant reuses the exact same silhouette
+recolored green, but - unlike a straight color swap - its spot regions map
+to a *darker* green (`'d'`) rather than collapsing to flat green, so the
+cap keeps a highlight/shadow look instead of going flat; this preserves the
+established convention that 1-up has no literal red spots while still
+getting the redesign's shape detail.
 
 **Pipe art (`pipeTop`/`pipeBody` in `js/sprites.js`).** Unlike most other
 sprites, these are baked at native SCREEN resolution (`PIPE_W = 48`/`PIPE_H

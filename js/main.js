@@ -18,12 +18,13 @@ const FOUND_BUT_FINISHED_MESSAGE =
 
 // Native sprite px -> on-screen px. The redesigned Mario sprites (see
 // sprites.js) are baked at a higher native resolution than before (big:
-// 20x36, up from 16x18/20; small: 18x18, up from 16x14) so this scale was
-// lowered to keep big Mario's on-screen height about the same as before
-// (~30px) rather than suddenly rendering him much taller - small Mario ends
-// up proportionally smaller than he used to be as a result, which is
-// actually more faithful to the reference art's own big:small size ratio.
-const MARIO_DRAW_SCALE = 5 / 6;
+// 20x36, up from 16x18/20; small: 18x18, up from 16x14); this scale
+// compensates for that so Mario's on-screen size is a deliberate choice
+// here, not just whatever the native resolution happens to produce.
+// Bumped from 5/6 to 1 - reference screenshots showed Mario reading a
+// little small next to the pipes at 5/6, and pipes/tiles are staying the
+// same size, so Mario alone got bigger.
+const MARIO_DRAW_SCALE = 1;
 const BEALE_BOX_SCALE = 2.2;  // fallback procedural treasure-box draw scale (see drawBealeChest)
 
 // Timing for the chest's post-win sequence (see updateBealeGame's 'burst'
