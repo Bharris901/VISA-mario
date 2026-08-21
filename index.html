@@ -4,7 +4,25 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Memphis Mario</title>
-<link rel="stylesheet" href="style.css?v=20" />
+
+<!-- "Add to Home Screen" support: a website can never force Safari/Chrome's
+     own tab bar or URL bar to hide during normal in-tab browsing - that's a
+     hard platform restriction, not something any meta tag or JS can touch.
+     The only way to get a truly chrome-free, fullscreen view is for the
+     player to add this page to their home screen and launch it from there;
+     these tags are what make THAT launch open standalone (no browser UI at
+     all) instead of just another regular Safari/Chrome tab. See README.md
+     for the one-line instructions to give scavenger-hunt participants. -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Memphis Mario" />
+<meta name="theme-color" content="#4a89e0" />
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=21" />
+<link rel="icon" href="assets/icons/favicon-32.png?v=21" />
+<link rel="manifest" href="manifest.json?v=21" />
+
+<link rel="stylesheet" href="style.css?v=21" />
 </head>
 <body>
 
@@ -62,15 +80,15 @@
     </div>
   </div>
 
-  <script src="js/sprites.js?v=20"></script>
-  <script src="js/audio.js?v=20"></script>
-  <script src="js/input.js?v=20"></script>
-  <script src="js/level.js?v=20"></script>
-  <script src="js/entities.js?v=20"></script>
-  <script src="js/physics.js?v=20"></script>
-  <script src="js/secretRoom.js?v=20"></script>
-  <script src="js/minigame.js?v=20"></script>
-  <script src="js/ui.js?v=20"></script>
-  <script src="js/main.js?v=20"></script>
+  <script src="js/sprites.js?v=21"></script>
+  <script src="js/audio.js?v=21"></script>
+  <script src="js/input.js?v=21"></script>
+  <script src="js/level.js?v=21"></script>
+  <script src="js/entities.js?v=21"></script>
+  <script src="js/physics.js?v=21"></script>
+  <script src="js/secretRoom.js?v=21"></script>
+  <script src="js/minigame.js?v=21"></script>
+  <script src="js/ui.js?v=21"></script>
+  <script src="js/main.js?v=21"></script>
 </body>
 </html>

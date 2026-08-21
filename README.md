@@ -43,6 +43,19 @@ you'd rather use one of those instead.
   DESCEND buttons bottom-right. Phone must be in landscape — a rotate prompt
   shows automatically in portrait.
 
+**Tip for a chrome-free full screen on phones:** a website can never force
+Safari/Chrome to hide their own tab bar/URL bar during normal browsing — the
+browser's own controls always take priority. To get a truly full-screen
+view with no browser UI at all, tell participants to **Add to Home Screen**
+first (Safari: Share button → Add to Home Screen; Chrome: ⋮ menu → Add to
+Home Screen), then launch the game from that new icon instead of the
+bookmark/link. This is set up already (see the `apple-mobile-web-app-*` meta
+tags and `manifest.json` in `index.html`) - it just requires that one extra
+tap from each player before they start playing. Short of that (playing in
+a regular browser tab, browser chrome and all), the game still fills the
+screen edge-to-edge on essentially any phone aspect ratio - see
+`fitCanvas()` in `js/main.js`.
+
 There's a single ground speed (no RUN button/speed tier) - simpler to reason
 about for a one-day event with mostly non-gamers. DESCEND is a dedicated
 button alternative to dragging the stick down (mainly so entering the secret

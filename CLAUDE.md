@@ -79,6 +79,50 @@ pole down to standing height over `SLIDE_MS`; `finishFlagpole()` (called
 once the slide completes, not the instant the pole is touched) is where
 music stops, fireworks spawn, and the win/lose message is scheduled.
 
+**Canvas fills the viewport, cropped rather than letterboxed
+(`fitCanvas()`/`CANVAS_MAX_CROP_ASPECT` in `main.js`, `#game` in
+`style.css`).** `#game` is styled `object-fit: cover; object-position:
+center bottom` rather than the more typical `contain` - on any aspect ratio
+wider than the canvas's internal 480:288 (every phone in landscape, worse
+once the browser's own chrome eats into the available height), `contain`
+would show black pillarbox bars on the sides; `cover` instead scales the
+canvas up until it fills the element completely and crops whichever
+dimension overflows - on a wide viewport that's the *height*, and
+`object-position: center bottom` anchors that crop to the top (so it's sky
+that gets trimmed away, not the ground/gameplay). This was a real reported
+issue: a player's phone left enough Safari chrome on screen that `contain`'s
+letterbox bars ate a large chunk of the already-short viewport.
+
+**Gotcha already hit once:** an *uncapped* cover crop is dangerous - on an
+extreme enough aspect ratio (a lot of browser chrome, or just a very wide
+phone) the crop can remove enough of the canvas's top to push on-canvas UI
+positioned there (the Beale scene's card grid sits in the upper-middle of
+the screen) off-screen entirely - not just visually cropped but physically
+untappable, since no on-screen pixel maps to that canvas-internal position
+anymore. `fitCanvas()` caps this: past `CANVAS_MAX_CROP_ASPECT` (2.0), it
+narrows the canvas *element* itself (via an inline `style.width`, recomputed
+on `resize`/`orientationchange`) so the crop amount never exceeds what the
+cap allows, letting `#game-wrap`'s flex-centering show plain (much
+thinner-than-`contain`-would-have) pillarbox bars for any excess beyond that
+cap instead of cropping further. `canvasCoordsFromClient()` (used for every
+canvas-tap interaction, see the Beale/mini-game section below) had to be
+rewritten for this cover-fit math - the offsets it computes can come out
+*negative* now (the bitmap overflowing the element box), unlike the old
+`contain` version where they were always >= 0 (letterbox bars).
+
+**"Add to Home Screen" for a chrome-free view.** No meta tag or JS can force
+Safari/Chrome to hide their own tab bar/URL bar during normal in-tab
+browsing - that's a hard platform restriction. The `apple-mobile-web-app-*`
+meta tags and `manifest.json` (both referenced from `index.html`'s `<head>`)
+don't change that; what they do is make it so that *if* a player uses
+"Add to Home Screen" first, launching the game from that new home-screen
+icon opens it standalone with no browser UI at all, instead of just another
+regular tab. See the README's "Tip for a chrome-free full screen" note,
+which is the actual instruction to give participants - this is opt-in per
+player, not automatic. `assets/icons/` holds the generated icon PNGs (a
+version of the growth-mushroom sprite on the game's sky-blue, baked at a
+few sizes for `apple-touch-icon`/`manifest.json`/favicon use).
+
 **Music start/stop/restart.** Only call `restartLevel()` (stops+restarts
 music, then calls `resetLevel()`) from a button that represents "start
 fresh" (death's Start Over, the flagpole's Play Again). The mini-game win
@@ -379,14 +423,17 @@ direction/button" — coordinates are rescaled from client-space to the
 canvas's internal 480×288 space via `canvasCoordsFromClient()`, which any
 future canvas-tap interaction should reuse. **Gotcha already hit once:**
 naively scaling by `rect.width`/`rect.height` from `getBoundingClientRect()`
-is *not* enough, because `#game` is styled `object-fit: contain` (see
-`style.css`) — whenever the on-screen aspect ratio doesn't exactly match
-480×288 the canvas is letterboxed, so its element box is bigger than the
-actual visible/scaled bitmap inside it, and every tap is off by however wide
-the bars are (worst right at the edges — this is exactly why the
-leftmost/rightmost card columns were the least reliable to tap).
-`canvasCoordsFromClient()` computes the letterbox offset itself before
-rescaling.
+is *not* enough, because `#game` is styled `object-fit: cover;
+object-position: center bottom` (see `style.css` and the "Canvas fills the
+viewport" section below) — whenever the on-screen aspect ratio doesn't
+exactly match 480×288, the canvas's element box and its actual visible/
+scaled bitmap differ (the bitmap is *larger* than the box and gets cropped,
+the reverse of the `object-fit: contain` letterboxing this used to be), and
+every tap is off by however much is cropped (worst right at the top/edges —
+this is exactly why the top-row/leftmost/rightmost card cells were the least
+reliable to tap before this was fixed). `canvasCoordsFromClient()` computes
+that cover-fit offset itself (which comes out *negative*, since the bitmap
+overflows the box) before rescaling.
 
 Finding the 10th pair moves to `'burst'`: the matched cards fly apart from
 the pile (`startCardScatter()`/`updateCardScatter()` in `minigame.js` - pure

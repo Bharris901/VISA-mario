@@ -34,6 +34,11 @@ const BEALE_BOX_SCALE = 2.2;  // fallback procedural treasure-box draw scale (se
 const BEALE_CHEST_SHAKE_START_MS = 1400;
 const BEALE_CHEST_POP_MS = 3000;
 
+// Widest aspect ratio `#game` (see style.css) is ever allowed to crop up to
+// via object-fit: cover before layoutCanvas() below steps in - see there for
+// why this needs a cap at all.
+const CANVAS_MAX_CROP_ASPECT = 2.0;
+
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
@@ -751,33 +756,39 @@ function updateBealeGame(dt) {
 
 // Converts a client-space (viewport) coordinate to the canvas's internal
 // 480x288 drawing space. `#game` is styled `width:100%; height:100%;
-// object-fit: contain` (see style.css) so, whenever the on-screen aspect
-// ratio doesn't exactly match 480:288, the canvas is letterboxed - its
-// *element* box (what getBoundingClientRect returns) is bigger than the
-// actual visible/scaled bitmap inside it. Naively scaling by
-// rect.width/rect.height (as an early version of this did) ignores those
-// letterbox bars, so every tap is off by however wide the bars are - worst
-// at the edges, which is exactly why the leftmost/rightmost card columns
-// were the most unreliable to tap. Any future canvas-tap interaction should
-// reuse this helper rather than rect.width/height directly.
+// object-fit: cover; object-position: center bottom` (see style.css) so the
+// canvas fills the element edge-to-edge on any aspect ratio - whichever
+// dimension doesn't match 480:288 *overflows* the element and is cropped
+// (anchored to the bottom, so it's sky trimmed off the top, not ground),
+// rather than being letterboxed with bars like a plain `object-fit: contain`
+// would. Naively scaling by rect.width/rect.height ignores that crop, so
+// every tap would be off by however much got cropped - worst at the top/
+// edges. Any future canvas-tap interaction should reuse this helper rather
+// than rect.width/height directly.
+//
+// contentW/contentH is the on-screen size of the actual 480x288 bitmap once
+// scaled to *cover* the element (so it's >= the element's own box on the
+// axis that overflows/crops, rather than <= it like the old letterboxed
+// `contain` version of this function). offsetX/offsetY (anchored 50%/100%
+// to match object-position: center bottom) can come out negative here -
+// that's expected, it's how far the bitmap's top-left corner sits outside
+// the visible element box on the cropped side.
 function canvasCoordsFromClient(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
   const elemAspect = rect.width / rect.height;
   const contentAspect = VIEW_W / VIEW_H;
-  let contentW, contentH, offsetX, offsetY;
+  let contentW, contentH;
   if (elemAspect > contentAspect) {
-    // letterboxed left/right - element is wider than the scaled content
-    contentH = rect.height;
-    contentW = contentH * contentAspect;
-    offsetX = (rect.width - contentW) / 2;
-    offsetY = 0;
-  } else {
-    // letterboxed top/bottom
+    // height overflows/crops - width matches the element exactly
     contentW = rect.width;
     contentH = contentW / contentAspect;
-    offsetX = 0;
-    offsetY = (rect.height - contentH) / 2;
+  } else {
+    // width overflows/crops - height matches the element exactly
+    contentH = rect.height;
+    contentW = contentH * contentAspect;
   }
+  const offsetX = (rect.width - contentW) / 2;  // object-position: center
+  const offsetY = rect.height - contentH;        // object-position: bottom
   return {
     x: (clientX - rect.left - offsetX) * (VIEW_W / contentW),
     y: (clientY - rect.top - offsetY) * (VIEW_H / contentH),
@@ -904,12 +915,31 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+// Canvas internal resolution stays fixed (pixel-art); CSS scales it via
+// object-fit: cover (see style.css), which fills the viewport edge-to-edge
+// on any aspect ratio by cropping whichever dimension overflows - great for
+// eliminating pillarbox bars on a typical phone-in-landscape, but on an
+// extreme aspect ratio (e.g. a lot of Safari chrome eating the available
+// height) an *uncapped* cover crop can trim away enough of the canvas's top
+// to push on-canvas UI (the Beale scene's card grid, positioned in the
+// upper-middle of the screen) off-screen entirely - not just visually
+// cropped, but physically untappable, since no on-screen pixel maps to that
+// canvas-internal position anymore.
+//
+// This caps it: past CANVAS_MAX_CROP_ASPECT, rather than cropping further,
+// the canvas element itself narrows (leaving normal pillarbox bars on the
+// sides for the excess) so the crop amount never exceeds what the cap
+// allows. Below the cap, the canvas is simply 100% width/height and
+// object-fit: cover does the (now-bounded) cropping on its own.
 function fitCanvas() {
-  // Canvas internal resolution stays fixed (pixel-art); CSS scales it via
-  // object-fit: contain (see style.css). Nothing else needed here, but keep
-  // the hook in case we want DPI-based supersampling later.
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const viewportAspect = vw / vh;
+  canvas.style.width = viewportAspect > CANVAS_MAX_CROP_ASPECT
+    ? `${vh * CANVAS_MAX_CROP_ASPECT}px`
+    : '100%';
 }
 window.addEventListener('resize', fitCanvas);
+window.addEventListener('orientationchange', fitCanvas);
 
 // --- Boot ---
 function boot() {

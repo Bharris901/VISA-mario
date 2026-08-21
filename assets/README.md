@@ -1,5 +1,15 @@
 # Assets
 
+## `icons/`
+
+Home-screen/tab icon PNGs generated from the game's own baked growth-
+mushroom sprite (`SPRITES.mushroom` in `js/sprites.js`) on the game's
+sky-blue background, at a few sizes: `apple-touch-icon.png` (180x180, for
+`<link rel="apple-touch-icon">`), `icon-192.png`/`icon-512.png` (referenced
+from `manifest.json`), and `favicon-32.png` (the browser-tab icon). Not
+hand-drawn separately - just the existing mushroom art re-rendered at icon
+sizes, so it stays visually consistent with the in-game sprite.
+
 ## `beale-street-bg.png`
 
 The Beale Street scene's photo backdrop (Hernando de Soto Bridge, the

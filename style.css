@@ -15,15 +15,29 @@ html, body {
 #game {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  /* object-fit: contain letterboxes whenever the viewport's aspect ratio
-     doesn't match the canvas's internal 480x288 - the bars show this
-     background color (the sky-blue in-game background is drawn by the
-     canvas itself each frame, this is only what shows outside that). */
+  /* object-fit: cover fills the viewport edge-to-edge on any aspect ratio
+     wider than the canvas's internal 480:288 (every phone in landscape,
+     especially once Safari's own chrome eats into the available height) -
+     object-fit: contain used to letterbox that mismatch with black bars on
+     the sides instead. cover means the *overflowing* dimension gets
+     cropped rather than shown as bars - on a wide viewport that's the
+     canvas's height, not its width, so object-position anchors the crop to
+     the bottom (only sky gets trimmed off the top, the ground/gameplay
+     stays fully visible) rather than the default center crop.
+     `width` is NOT a flat 100% here - layoutCanvas() (main.js) sets it
+     inline on load/resize, capping the crop to CANVAS_MAX_CROP_ASPECT so an
+     extreme aspect ratio (e.g. a phone with a lot of Safari chrome eating
+     the height) can't crop away enough of the top to push on-canvas UI
+     (like the Beale scene's card grid) off-screen entirely - beyond that
+     cap the canvas narrows and the leftover space becomes normal pillarbox
+     bars instead of further cropping. See canvasCoordsFromClient() in
+     main.js, which has to know this exact fit/anchor to map a tap back to
+     canvas-internal coordinates. */
   background: #000;
-  width: 100%;
   height: 100%;
   max-height: 100vh;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center bottom;
 }
 
 /* ---------- HUD ---------- */
