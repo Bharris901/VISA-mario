@@ -35,7 +35,7 @@ const PAL = {
   // reference PAL.mario's original colors directly, so redefining those
   // would have silently recolored the mushrooms too.
   heroMario: { '.': null, 'g':'#6f6d23', 'r':'#a23f2e', 'k':'#d7a75b' },
-  goomba: { '.': null, 'b':'#8b3a00', 'd':'#4a1f00', 'w':'#ffffff', 'k':'#000000' },
+  goomba: { '.': null, 'b':'#5c2b03', 's':'#e9bf85', 'k':'#000000' },
   koopa: { '.': null, 'g':'#00a852', 'y':'#fbd000', 'w':'#ffffff', 'k':'#000000', 'd':'#00782e' },
   block: { '.': null, 'y':'#fbd000', 'o':'#c98800', 'k':'#7a4b00' },
   brick: { '.': null, 'r':'#c9682a', 'd':'#8f4718' },
@@ -311,60 +311,70 @@ const marioBigJump = M([
 
 const MARIO_BIG = { stand: marioBigStand, walk: [marioBigWalk1, marioBigWalk2], jump: marioBigJump };
 
-// --- Goomba, 16x16 ---
+// --- Goomba, redesigned to match a reference image (front-facing, angry
+// eyebrows, a distinct tan face/snout against a dark brown head) - derived
+// from that image the same way Mario's redesign was: classified to its own
+// 3 flat colors, then downsampled with a majority-vote pool. Baked at 18x16
+// (exactly the fixed size drawEnemies() always draws a goomba at - see
+// `e.w + 2`/`e.h` in main.js - unlike Mario, goomba's draw size is NOT
+// derived from the sprite's own canvas dimensions, so baking any bigger
+// would just be downsampled/lost at draw time for no benefit). walk1/walk2
+// only differ in the foot row (shifted a column) for a subtle step; squish
+// reuses the head/face rows compressed into the bottom of the same canvas,
+// with the feet dropped entirely, matching the original squish's approach.
 const goombaWalk1 = M([
-  '................',
-  '.....bbbbbb.....',
-  '...bbbbbbbbbb...',
-  '..bbbbbbbbbbbb..',
-  '.bbbbwwbbwwbbbb.',
-  '.bbbbwkbbkwbbbb.',
-  '.bbbbbbbbbbbbbb.',
-  '..bbbdddddbbbb..',
-  '...bbdddddbbb...',
-  '....bbbbbbbb....',
-  '....bb....bb....',
-  '...bbb....bbb...',
-  '..bb........bb..',
-  '................',
-  '................',
-  '................',
+  '.......bbbb.......',
+  '......bbbbbb......',
+  '.....bbbbbbbb.....',
+  '....bbbbbbbbbb....',
+  '...bkkbbbbbbkkb...',
+  '..bbbskbbbbksbbbb.',
+  '.bbbbskbbbbksbbbb.',
+  'bbbbbsksbbsksbbbbb',
+  'bbbbbsssbbsssbbbbb',
+  'bbbbbbbbbbbbbbbbbb',
+  '.bbbbbssssssbbbbb.',
+  '.....ssssssss.....',
+  '..kkksssssssskkk..',
+  '.kkkkkksssskkkkkk.',
+  '..kkkkkk..kkkkkkk.',
+  '...kkkkk..kkkkk...',
 ], PAL.goomba);
 const goombaWalk2 = M([
-  '................',
-  '.....bbbbbb.....',
-  '...bbbbbbbbbb...',
-  '..bbbbbbbbbbbb..',
-  '.bbbbwwbbwwbbbb.',
-  '.bbbbwkbbkwbbbb.',
-  '.bbbbbbbbbbbbbb.',
-  '..bbbdddddbbbb..',
-  '...bbdddddbbb...',
-  '....bbbbbbbb....',
-  '...bb....bb.....',
-  '..bbb....bbb....',
-  '................',
-  '................',
-  '................',
-  '................',
+  '.......bbbb.......',
+  '......bbbbbb......',
+  '.....bbbbbbbb.....',
+  '....bbbbbbbbbb....',
+  '...bkkbbbbbbkkb...',
+  '..bbbskbbbbksbbbb.',
+  '.bbbbskbbbbksbbbb.',
+  'bbbbbsksbbsksbbbbb',
+  'bbbbbsssbbsssbbbbb',
+  'bbbbbbbbbbbbbbbbbb',
+  '.bbbbbssssssbbbbb.',
+  '.....ssssssss.....',
+  '...kkksssssssskkk.',
+  '..kkkkkksssskkkkkk',
+  '...kkkkkk..kkkkkkk',
+  '....kkkkk..kkkkk..',
 ], PAL.goomba);
 const goombaSquish = M([
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
-  '.....bbbbbb.....',
-  '...bbbbbbbbbb...',
-  '.bbbbwwbbwwbbbb.',
-  '.bbbbbbbbbbbbbb.',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
-  '................',
+  '..................',
+  '..................',
+  '..................',
+  '..................',
+  '..................',
+  '..................',
+  '..................',
+  '..................',
+  '..................',
+  '.......bbbb.......',
+  '......bbbbbb......',
+  '....bbbbbbbbbb....',
+  '..bbbskbbbbksbbbb.',
+  '.bbbbskbbbbksbbbb.',
+  'bbbbbsssbbsssbbbbb',
+  '.bbbbbssssssbbbbb.',
 ], PAL.goomba);
 const GOOMBA = { walk: [goombaWalk1, goombaWalk2], squish: goombaSquish };
 

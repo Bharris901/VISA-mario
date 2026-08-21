@@ -222,6 +222,20 @@ Mario's on-screen height about the same as before - small Mario ends up
 proportionally smaller relative to big Mario than he used to be as a
 result (closer to the reference art's own size ratio between the two).
 
+**Goomba's sprites (`goombaWalk1`/`goombaWalk2`/`goombaSquish` in
+`js/sprites.js`).** Redesigned the same reference-derived way as Mario
+(classified to the reference image's own 3 flat colors - dark brown head,
+tan face/snout, black eyebrows/eyes/feet - then downsampled with a
+majority-vote pool), but baked at exactly 18x16 rather than a larger size:
+unlike Mario, `drawEnemies()` (`main.js`) always draws a goomba at a fixed
+`e.w + 2` x `e.h` regardless of the sprite's own canvas dimensions, so
+baking any bigger would just be downsampled away at draw time for no
+visual benefit - 18x16 *is* that fixed draw size, so the bake is an exact
+1:1 blit with no scaling at all. `goombaWalk2` is `goombaWalk1` with the
+foot row shifted one column for a subtle step; `goombaSquish` reuses the
+head/face rows (no feet) compressed into the bottom of the same 18x16
+canvas, matching the original squish sprite's approach.
+
 **Pipe art (`pipeTop`/`pipeBody` in `js/sprites.js`).** Unlike most other
 sprites, these are baked at native SCREEN resolution (`PIPE_W = 48`/`PIPE_H
 = 24`, matching `TILE*2`/`TILE` from `level.js` - written as literal
