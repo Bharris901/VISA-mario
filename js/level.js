@@ -120,14 +120,11 @@ function buildLevel() {
   // --- Final big staircase up to the flagpole ---
   const flagStairTop = stairsUp(208, 8, 1);
   // A maxed-out running jump (full speed, held for max height) straight off
-  // the stair-top peak (col 215) lands around col 220-221 - that used to be
-  // exactly where the pole was (zero margin), then got moved out to 223 (a
-  // couple of extra steps needed after landing). Split the difference back
-  // toward the original on request - still a bit further than the original
-  // reachable-in-one-jump spot, just not as far as 223 was. (228 landed
-  // well beyond a single jump's reach when this was tuned originally, for
-  // reference.)
-  const flagCol = 222;
+  // the stair-top peak (col 215) lands around col 220-221 - back to that
+  // original, exactly-reachable-in-one-jump spot after briefly trying it
+  // further out (223, then 222). (228 landed well beyond a single jump's
+  // reach when this was tuned originally, for reference.)
+  const flagCol = 220;
   // Shortened on purpose (6 tiles instead of spanning the full screen
   // height) so the ball finial at the top is clearly visible with sky
   // above it, rather than running off the top of the view.
