@@ -52,6 +52,20 @@ function resetLevelTiles() {
   for (let r = 0; r < ROWS; r++) LEVEL.grid[r] = ORIGINAL_GRID[r].slice();
 }
 
+// The flag's own descent, independent of wherever Mario actually grabbed
+// the pole - it always starts at the same spot near the top (matching its
+// static draw offset) and always ends at the same spot near the base.
+// FLAG_SLIDE_SPEED (derived from those two fixed points and how long a
+// full-height slide should take) is the one shared px/ms speed used for
+// *both* Mario and the flag while sliding - see the 'flagSlide' state in
+// update() - so grabbing higher up naturally takes longer for both, and
+// grabbing anywhere below the flag's own start means Mario (a shorter
+// distance at that same speed) reaches the bottom before the flag does.
+const FLAG_TOP_Y = FLAG_TOP_ROW * TILE + 4; // matches the flag sprite's draw offset from the pole top
+const FLAG_BOTTOM_Y = GROUND_ROW * TILE - 14; // rests with its bottom edge at the ground line
+const FLAG_SLIDE_MS = 650; // time a full-height slide (grabbed at the very top) takes
+const FLAG_SLIDE_SPEED = (FLAG_BOTTOM_Y - FLAG_TOP_Y) / FLAG_SLIDE_MS; // px/ms, shared by Mario + flag
+
 const game = {
   state: 'start', // start | playing | pipeEnter | secretRoom | minigame | flagSlide | frozen
   player: null,
@@ -68,6 +82,7 @@ const game = {
   pipeAnimTimer: 0,
   flagSlideTimer: 0,
   flagSlideStartY: 0,
+  flagY: FLAG_TOP_Y, // the flag's own current draw height - only moves during 'flagSlide'
   beale: null,  // Beale scene sub-state: fall-in, speech bubble, chest shake/pop
   memory: null, // the 20-card memory game state (see minigame.js)
   paused: false,
@@ -87,6 +102,7 @@ function resetLevel() {
   game.cameraX = 0;
   game.beale = null;
   game.memory = null;
+  game.flagY = FLAG_TOP_Y; // put the flag back at the top for the next attempt
   Sfx.stopMiniGameMusic(); // safety net in case a reset happens mid mini-game
   game.state = 'playing';
 }
@@ -254,6 +270,7 @@ function checkFlagpole() {
     game.player.vx = 0; game.player.vy = 0;
     game.flagSlideTimer = 0;
     game.flagSlideStartY = game.player.y;
+    game.flagY = FLAG_TOP_Y; // the flag always starts its own descent from the top, regardless of where Mario grabbed
     Sfx.bump();
   }
 }
@@ -337,12 +354,16 @@ function drawLevel(camX) {
       }
     }
   }
-  // Ball finial + pennant at the top of the (deliberately shortened) pole,
-  // so the top is always clearly visible with sky above it.
+  // Ball finial at the top of the (deliberately shortened) pole, so the top
+  // is always clearly visible with sky above it. The pennant, unlike the
+  // ball, moves - game.flagY tracks its own descent (see the 'flagSlide'
+  // state in update()), independent of wherever Mario actually grabbed the
+  // pole, so it always starts at FLAG_TOP_Y and only reaches FLAG_BOTTOM_Y
+  // once its own slide (at the same shared speed as Mario's) finishes.
   const poleTopY = FLAG_TOP_ROW * TILE;
   const poleCenterX = FLAG_COL * TILE - camX + TILE / 2;
   drawSprite(SPRITES.ball, poleCenterX - 8, poleTopY - 12, 16, 16);
-  drawSprite(SPRITES.flag, poleCenterX - 14, poleTopY + 4, 24, 12);
+  drawSprite(SPRITES.flag, poleCenterX - 24, game.flagY, 24, 14);
 
   drawEndPyramid(camX);
 }
@@ -363,8 +384,19 @@ function drawLevel(camX) {
 // getEndPyramidCanvas() chroma-keys the near-white background to
 // transparent once, into a cached in-memory canvas - the actual asset file
 // on disk is never touched/re-exported, only this runtime copy.
-const END_PYRAMID_HEIGHT = TILE * 5; // on-screen px
+//
+// Gotcha #2: the source image also has a few px of that same near-white
+// margin *around* the pyramid itself (on every side, not just corners) -
+// scaling/positioning off the raw image's own width/height (as an earlier
+// version of this did) leaves that bottom margin between the pyramid's
+// actual visual base and the ground line, reading as "floating" rather
+// than sitting on the ground. getEndPyramidBBox() finds the chroma-keyed
+// content's tight bounding box once (alongside the transparent canvas
+// above), and drawEndPyramid() draws *that* sub-rect instead of the whole
+// canvas, so its bottom edge is the pyramid's actual visual base.
+const END_PYRAMID_HEIGHT = TILE * 7; // on-screen px
 let endPyramidCanvas = null;
+let endPyramidBBox = null;
 function getEndPyramidCanvas() {
   if (endPyramidCanvas) return endPyramidCanvas;
   const img = cardPhotoImages.pyramid;
@@ -376,21 +408,28 @@ function getEndPyramidCanvas() {
   octx.drawImage(img, 0, 0);
   const frame = octx.getImageData(0, 0, off.width, off.height);
   const px = frame.data;
+  let minX = off.width, minY = off.height, maxX = 0, maxY = 0;
   for (let i = 0; i < px.length; i += 4) {
-    if (px[i] > 235 && px[i + 1] > 235 && px[i + 2] > 235) px[i + 3] = 0;
+    const isBg = px[i] > 235 && px[i + 1] > 235 && px[i + 2] > 235;
+    if (isBg) { px[i + 3] = 0; continue; }
+    const p = i / 4, x = p % off.width, y = (p - x) / off.width;
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
   }
   octx.putImageData(frame, 0, 0);
   endPyramidCanvas = off;
+  endPyramidBBox = { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
   return endPyramidCanvas;
 }
 function drawEndPyramid(camX) {
   const src = getEndPyramidCanvas();
   if (!src) return;
+  const b = endPyramidBBox;
   const h = END_PYRAMID_HEIGHT;
-  const w = src.width * (h / src.height);
+  const w = b.w * (h / b.h);
   const x = (FLAG_COL + 4) * TILE - camX;
   const y = GROUND_ROW * TILE - h;
-  ctx.drawImage(src, x, y, w, h);
+  ctx.drawImage(src, b.x, b.y, b.w, b.h, x, y, w, h);
 }
 
 function drawEnemies(camX) {
@@ -882,13 +921,17 @@ function update(dt) {
   }
   else if (game.state === 'flagSlide') {
     const p = game.player;
-    const SLIDE_MS = 650;
     game.flagSlideTimer += dt;
-    const t = Math.min(1, game.flagSlideTimer / SLIDE_MS);
     const standY = GROUND_ROW * TILE - p.h;
-    p.y = game.flagSlideStartY + (standY - game.flagSlideStartY) * t;
-    if (t >= 1) {
-      p.y = standY;
+    // Mario and the flag both move at the same fixed FLAG_SLIDE_SPEED, just
+    // from wherever each of them started - Mario from his actual grab
+    // height (variable), the flag always from FLAG_TOP_Y (fixed). Whoever
+    // has less distance left simply arrives (and clamps in place) sooner;
+    // the state doesn't finish until *both* have landed.
+    const dy = FLAG_SLIDE_SPEED * game.flagSlideTimer;
+    p.y = Math.min(standY, game.flagSlideStartY + dy);
+    game.flagY = Math.min(FLAG_BOTTOM_Y, FLAG_TOP_Y + dy);
+    if (p.y >= standY && game.flagY >= FLAG_BOTTOM_Y) {
       finishFlagpole();
     }
   }

@@ -206,7 +206,36 @@ white background baked in (it was made to sit on a card's own white face,
 not against open sky) - drawing it directly showed a glaring white box
 behind the pyramid. `getEndPyramidCanvas()` chroma-keys the near-white
 background to transparent once into a cached in-memory canvas; the actual
-asset file on disk is never touched.
+asset file on disk is never touched. **Gotcha already hit once:** that same
+source image also has a few px of that near-white margin *around* the
+pyramid itself, on every side - scaling/positioning off the raw image's own
+width/height (rather than the chroma-keyed content's own tight bounding
+box) leaves that bottom margin between the pyramid's actual visual base and
+the ground line, reading as "floating" instead of sitting on the ground.
+`getEndPyramidCanvas()` now also computes `endPyramidBBox` (the tight
+content bounding box, found while scanning pixels for the chroma-key above)
+once alongside the transparent canvas, and `drawEndPyramid()` draws that
+sub-rect (via the 9-argument `drawImage()`) instead of the whole canvas, so
+its bottom edge is the pyramid's actual base, not wherever the source
+image's own canvas happens to end.
+
+**Flagpole (`flagpoleTile`/`flagSprite`/`ballSprite` in `sprites.js`,
+flag-related code in `main.js`).** Redesigned to match a reference image: a
+brighter green pole/ball (own dedicated `PAL.flagpole`, so it doesn't affect
+`PAL.misc`'s green bushes), a black-outlined ball, and an actual triangular
+pennant (baked at 24x14, matching its draw size for a clean 1:1 blit) in
+place of the old bordered-rectangle flag. The pennant now also *moves*:
+`game.flagY` tracks its own descent, entirely independent of wherever Mario
+actually grabbed the pole - it always starts at `FLAG_TOP_Y` (reset there in
+`resetLevel()`/`checkFlagpole()`) and both it and the player move during the
+`'flagSlide'` state at the exact same `FLAG_SLIDE_SPEED` (px/ms, derived
+from how long a full-height slide should take). Since the flag's distance
+to travel is fixed (always from the top) while Mario's varies with wherever
+he actually grabbed, this one shared speed is what makes grabbing near the
+top land them together and grabbing lower down land Mario first, with the
+flag clamped in place once each of them individually reaches their own
+resting `Y` - the state doesn't advance to `finishFlagpole()` until *both*
+have arrived, not just Mario.
 
 **Enemy spawn placement (`groundSurfaceRowAt`).** Spawn columns in
 `ENTITY_SPAWNS` aren't all flat ground (some sit on stair terrain, and some

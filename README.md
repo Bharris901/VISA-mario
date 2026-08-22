@@ -122,8 +122,13 @@ since dying never actually ends play).
   congratulatory completion message instead.
 - Either way, touching the pole (including landing on top of it from a
   jump off the final staircase) grabs on and slides down to the bottom
-  first; landing is when fireworks go off (always), a music sting plays
-  (a different one depending on whether the clue was found), and the
+  first - the flag on the pole slides down too, at the same speed as
+  Mario, always starting from the very top regardless of where he actually
+  grabbed. Grab it near the top and they reach the ground together; grab
+  it partway down and Mario reaches the ground first, with the flag still
+  finishing its own way down. Landing is when fireworks go off (always), a
+  music sting plays (a different one depending on whether the clue was
+  found), and the
   message appears a beat later. Tapping Play Again/Start Over restarts the
   music from the top of the loop.
 

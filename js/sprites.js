@@ -55,6 +55,10 @@ const PAL = {
   // the "?" mark - no black outline/border tone, the source art is flat.
   qblock: { '.': null, 'y':'#f8d648', 'o':'#eb983f', 'w':'#ffffff' },
   face: { '.': null, 'y':'#ffcc4d', 'd':'#e0a233', 'k':'#664500', 'w':'#ffffff' },
+  // Flagpole ball/pennant, redesigned to match a reference image - a
+  // brighter green than PAL.misc's, plus a black outline on the ball (the
+  // old ball/flag had neither, hence the separate palette).
+  flagpole: { '.': null, 'g':'#65d044', 'k':'#000000', 'w':'#ffffff' },
 };
 
 const M = (rows, pal) => bakeSprite(rows, pal);
@@ -674,6 +678,9 @@ const coinSprite = M([
   '.....kkkkkk.....',
 ], PAL.coin);
 
+// Redesigned to match a reference image: a brighter green than the rest of
+// the level's art, plus (unlike the old version) a black-outlined ball and
+// an actual triangular pennant instead of a bordered rectangle.
 const flagpoleTile = M([
   '.......gg.......',
   '.......gg.......',
@@ -691,31 +698,51 @@ const flagpoleTile = M([
   '.......gg.......',
   '.......gg.......',
   '.......gg.......',
-], PAL.misc);
+], PAL.flagpole);
 
-// White pennant with a green accent mark, attached at the pole (left edge).
+// A proper triangular pennant (top edge + a full-height edge against the
+// pole + a diagonal hypotenuse), not the old bordered rectangle - baked at
+// 24x14 to match the size it's actually drawn at (see drawLevel() in
+// main.js) for a clean 1:1 blit, same reasoning as the goomba/mushroom
+// redesigns. The small accent mark is a simplified stand-in for the
+// reference's icon, not a literal reproduction of it.
 const flagSprite = M([
-  '................',
-  '.gggggggg.......',
-  '.gwwwwwwg.......',
-  '.gwwggwwg.......',
-  '.gwwggwwg.......',
-  '.gwwwwwwg.......',
-  '.gggggggg.......',
-  '................',
-], PAL.misc);
+  'wwwwwwwwwwwwwwwwwwwwwwww',
+  '..wwwwwwwwwwwwwwwwwwwwww',
+  '....wwwwwwwwwwwwwwwwwwww',
+  '.....wwwwwwwwwwwwwwwwwww',
+  '.......wwwwwwwwwwwwwwwww',
+  '.........wwwwggwwwwwwwww',
+  '...........wggggwwwwwwww',
+  '...........ggwwggwwwwwww',
+  '............ggggwwwwwwww',
+  '................wwwwwwww',
+  '..................wwwwww',
+  '...................wwwww',
+  '.....................www',
+  '.......................w',
+], PAL.flagpole);
 
-// Small ball finial for the top of the (now shortened) flagpole.
+// Small ball finial for the top of the (now shortened) flagpole, now with
+// a black outline ring (the old version had none).
 const ballSprite = M([
-  '..gggg..',
-  '.gggggg.',
-  'gggggggg',
-  'gggggggg',
-  'gggggggg',
-  'gggggggg',
-  '.gggggg.',
-  '..gggg..',
-], PAL.misc);
+  '................',
+  '....kkkkkkkk....',
+  '...kkkggggkkk...',
+  '..kkggggggggkk..',
+  '.kkggggggggggkk.',
+  '.kkggggggggggkk.',
+  '.kggggggggggggk.',
+  '.kggggggggggggk.',
+  '.kggggggggggggk.',
+  '.kggggggggggggk.',
+  '.kkggggggggggkk.',
+  '.kkggggggggggkk.',
+  '..kkggggggggkk..',
+  '...kkkggggkkk...',
+  '....kkkkkkkk....',
+  '................',
+], PAL.flagpole);
 
 // 8-bit grimacing face for the "try again" death screen.
 // Classic 8-bit "KO'd" face: X eyes + an open circle mouth.
