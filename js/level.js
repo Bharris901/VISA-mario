@@ -54,9 +54,24 @@ function buildLevel() {
     }
     return startCol + (steps - 1) * dir;
   };
+  // A floating, one-tile-thick run at a fixed height, not connected to the
+  // ground - used for the optional high routes below. Unlike solidGround()
+  // it doesn't fill anything underneath, so normal ground (or a pit) stays
+  // exactly as it was below it. `gaps` are columns within [c0,c1] left
+  // open, so crossing the whole run requires an actual jump partway rather
+  // than just walking straight across.
+  const platform = (c0, c1, row, gaps = []) => {
+    for (let col = c0; col <= c1; col++) {
+      if (!gaps.includes(col)) grid[row][col] = '#';
+    }
+  };
 
   // --- Ground with pits (gaps) ---
-  const pits = [[54, 55], [83, 85], [146, 148]];
+  // Deliberately varied widths rather than uniform, so they don't all feel
+  // like the same jump: a gentle 1-tile warm-up first, a normal 3-tile gap
+  // in the middle, and the widest/most committing jump (4 tiles) saved for
+  // last, right before the final stretch.
+  const pits = [[54, 54], [83, 85], [146, 149]];
   let c = 0;
   const groundSegments = [];
   let segStart = 0;
@@ -77,7 +92,7 @@ function buildLevel() {
   pipe(38, 3);
   pipe(46, 4);
 
-  // pit at 54-55 already carved
+  // pit at 54 (1 tile) already carved
 
   // --- Floating block cluster past first pit ---
   block(60, 5, 'B'); block(61, 5, '?'); block(62, 5, '?'); block(63, 5, 'B');
@@ -88,6 +103,19 @@ function buildLevel() {
   stairsUp(77, 4, -1);
 
   // pit at 83-85 already carved
+
+  // --- High/low choice #1: the little hill above already peaks (row 6) at
+  // cols 73-74 - rather than taking the down-stairs back to ground here,
+  // continuing straight across this elevated bridge clears pit B *and* the
+  // 3-goomba cluster just past it entirely, grabbing two bonus coin blocks
+  // along the way. It's not free: there's a single-tile gap at col 83,
+  // right over the pit's own void, so crossing takes one real jump, not
+  // just walking. The low route is the plain original one - stairs back
+  // down, jump the pit at ground level, then actually deal with the
+  // goombas on foot.
+  platform(75, 90, 6, [83]);
+  block(78, 3, '?');
+  block(88, 3, '?');
 
   // --- Long brick+coin corridor ---
   for (let i = 0; i < 6; i++) {
@@ -103,10 +131,19 @@ function buildLevel() {
   block(128, 5, 'B'); block(129, 5, '?'); block(130, 5, 'B');
   block(129, 2, '?');
 
-  // pit at 146-148 already carved
+  // pit at 146-149 (4 tiles - the widest in the level) already carved
 
   // --- Staircase down into the final stretch ---
   stairsUp(155, 3, 1);
+
+  // --- High/low choice #2: a second elevated bridge, this time over plain
+  // ground rather than a pit - reached with a plain standing jump (no
+  // running start needed, unlike the hill in choice #1). Crossing it (one
+  // gap at col 166) grabs a bonus coin block and bypasses the two goombas
+  // patrolling the ground below at cols 160/170; staying low means dealing
+  // with them on foot instead.
+  platform(160, 172, 6, [166]);
+  block(163, 3, '?');
 
   // --- SECRET PIPE: placed within the final 25% of the level (col >= 172) ---
   const SECRET_PIPE_COL = 182;
@@ -180,6 +217,13 @@ function groundSurfaceRowAt(col) {
 }
 
 // --- Entity spawns (Goombas only - no green enemies per design) ---
+// Two spots deliberately cluster 3 goombas close together (87/89/91 and
+// 133/136/139) instead of the otherwise-even single-goomba spacing
+// elsewhere, so there's a real "time this jump right" moment rather than
+// uniform one-at-a-time encounters throughout. Both sit right where a
+// high/low choice is also offered (see platform()/'High/low choice' above)
+// - the elevated route bypasses the cluster entirely, dealing with them on
+// foot is the cost of staying low.
 const ENTITY_SPAWNS = [
   { type: 'goomba', col: 18 },
   { type: 'goomba', col: 33 },
@@ -187,12 +231,15 @@ const ENTITY_SPAWNS = [
   { type: 'goomba', col: 50 },
   { type: 'goomba', col: 63 },
   { type: 'goomba', col: 74 },
+  { type: 'goomba', col: 87 },
+  { type: 'goomba', col: 89 },
+  { type: 'goomba', col: 91 },
   { type: 'goomba', col: 96 },
   { type: 'goomba', col: 100 },
   { type: 'goomba', col: 112 },
-  { type: 'goomba', col: 132 },
-  { type: 'goomba', col: 134 },
-  { type: 'goomba', col: 140 },
+  { type: 'goomba', col: 133 },
+  { type: 'goomba', col: 136 },
+  { type: 'goomba', col: 139 },
   { type: 'goomba', col: 160 },
   { type: 'goomba', col: 170 },
   { type: 'goomba', col: 198 },
