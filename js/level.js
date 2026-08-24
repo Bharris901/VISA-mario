@@ -67,11 +67,15 @@ function buildLevel() {
   };
 
   // --- Ground with pits (gaps) ---
-  // Deliberately varied widths rather than uniform, so they don't all feel
-  // like the same jump: a gentle 1-tile warm-up first, a normal 3-tile gap
-  // in the middle, and the widest/most committing jump (4 tiles) saved for
-  // last, right before the final stretch.
-  const pits = [[54, 54], [83, 85], [146, 149]];
+  // Alternates 4/3/4 tiles wide rather than a uniform width, so each jump
+  // still takes a real running jump but they don't all feel identical.
+  // (Empirically tested in-engine with a genuine running start: 3- and
+  // 4-tile gaps are both consistently clearable; a 5-tile gap is not - the
+  // player falls in every time - so 4 is the widest gap used anywhere in
+  // this level.) The middle pit is 3 tiles specifically so it lines up
+  // exactly with High/low choice #1's bridge gap just below, which spans
+  // this same pit.
+  const pits = [[54, 57], [83, 85], [146, 149]];
   let c = 0;
   const groundSegments = [];
   let segStart = 0;
@@ -92,7 +96,7 @@ function buildLevel() {
   pipe(38, 3);
   pipe(46, 4);
 
-  // pit at 54 (1 tile) already carved
+  // pit at 54-57 (4 tiles) already carved
 
   // --- Floating block cluster past first pit ---
   block(60, 5, 'B'); block(61, 5, '?'); block(62, 5, '?'); block(63, 5, 'B');
@@ -108,12 +112,15 @@ function buildLevel() {
   // cols 73-74 - rather than taking the down-stairs back to ground here,
   // continuing straight across this elevated bridge clears pit B *and* the
   // 3-goomba cluster just past it entirely, grabbing two bonus coin blocks
-  // along the way. It's not free: there's a single-tile gap at col 83,
-  // right over the pit's own void, so crossing takes one real jump, not
-  // just walking. The low route is the plain original one - stairs back
-  // down, jump the pit at ground level, then actually deal with the
-  // goombas on foot.
-  platform(75, 90, 6, [83]);
+  // along the way. It's not free: the bridge's gap spans cols 83-85 -
+  // matching pit B's own span exactly, directly over the pit's void - so
+  // crossing takes one real running jump, not just walking, and missing it
+  // drops straight into the same pit the low route would've had to jump
+  // anyway. The bonus block at col 78 sits well clear on the left side of
+  // the gap. The low route is the plain original one - stairs back down,
+  // jump the pit at ground level, then actually deal with the goombas on
+  // foot.
+  platform(75, 90, 6, [83, 84, 85]);
   block(78, 3, '?');
   block(88, 3, '?');
 
@@ -131,18 +138,19 @@ function buildLevel() {
   block(128, 5, 'B'); block(129, 5, '?'); block(130, 5, 'B');
   block(129, 2, '?');
 
-  // pit at 146-149 (4 tiles - the widest in the level) already carved
+  // pit at 146-149 (4 tiles) already carved
 
   // --- Staircase down into the final stretch ---
   stairsUp(155, 3, 1);
 
   // --- High/low choice #2: a second elevated bridge, this time over plain
-  // ground rather than a pit - reached with a plain standing jump (no
-  // running start needed, unlike the hill in choice #1). Crossing it (one
-  // gap at col 166) grabs a bonus coin block and bypasses the two goombas
-  // patrolling the ground below at cols 160/170; staying low means dealing
-  // with them on foot instead.
-  platform(160, 172, 6, [166]);
+  // ground rather than a pit. Its gap (cols 165-168, 4 tiles - same
+  // difficulty as the widest pit jump in the level) now needs the same
+  // genuine running jump as choice #1's hill bridge, not just a standing
+  // jump. Crossing it grabs a bonus coin block and bypasses a 4-goomba
+  // cluster patrolling the ground below (cols 160/163/167/170); staying low
+  // means dealing with all four of them on foot instead.
+  platform(160, 172, 6, [165, 166, 167, 168]);
   block(163, 3, '?');
 
   // --- SECRET PIPE: placed within the final 25% of the level (col >= 172) ---
@@ -217,13 +225,13 @@ function groundSurfaceRowAt(col) {
 }
 
 // --- Entity spawns (Goombas only - no green enemies per design) ---
-// Two spots deliberately cluster 3 goombas close together (87/89/91 and
-// 133/136/139) instead of the otherwise-even single-goomba spacing
-// elsewhere, so there's a real "time this jump right" moment rather than
-// uniform one-at-a-time encounters throughout. Both sit right where a
-// high/low choice is also offered (see platform()/'High/low choice' above)
-// - the elevated route bypasses the cluster entirely, dealing with them on
-// foot is the cost of staying low.
+// Three spots deliberately cluster goombas close together (87/89/91,
+// 133/136/139, and 160/163/167/170) instead of the otherwise-even
+// single-goomba spacing elsewhere, so there's a real "time this jump right"
+// moment rather than uniform one-at-a-time encounters throughout. All three
+// sit right where a high/low choice is also offered (see platform()/
+// 'High/low choice' above) - the elevated route bypasses the cluster
+// entirely, dealing with them on foot is the cost of staying low.
 const ENTITY_SPAWNS = [
   { type: 'goomba', col: 18 },
   { type: 'goomba', col: 33 },
@@ -241,6 +249,8 @@ const ENTITY_SPAWNS = [
   { type: 'goomba', col: 136 },
   { type: 'goomba', col: 139 },
   { type: 'goomba', col: 160 },
+  { type: 'goomba', col: 163 },
+  { type: 'goomba', col: 167 },
   { type: 'goomba', col: 170 },
   { type: 'goomba', col: 198 },
 ];

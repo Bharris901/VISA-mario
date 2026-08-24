@@ -199,28 +199,34 @@ connected to the ground, unlike `solidGround()`) with specific columns left
 open so crossing it takes a real jump rather than just walking straight
 across. Choice #1 (cols 75-90, row 6) continues the existing small hill's
 own peak height across pit B *and* a 3-goomba cluster just past it, with a
-single-tile gap right over the pit's own void and two bonus `'?'` blocks;
-choice #2 (cols 160-172, row 6) is a plain-ground equivalent reachable by a
-standing jump (no run-up needed - a jump apex is ~5.7 tiles per the
-`PHYS.JUMP_VELOCITY` comment, comfortably more than the 3-tile platform
-height), bypassing two patrolling goombas below. Missing either gap's jump
-drops the player through to whatever's below (the pit, in choice #1's
-case) - a real, if forgiving, cost for going high. The low route in both
-cases is just the unmodified original path.
+3-tile gap (cols 83-85, matching pit B's own span exactly) right over the
+pit's own void and two bonus `'?'` blocks; choice #2 (cols 160-172, row 6)
+is a plain-ground equivalent with a 4-tile gap (cols 165-168), bypassing a
+4-goomba cluster below. Both gaps now need the same genuine running
+jump - empirically tested in-engine (a real running start, full-height
+jump, no early release): 3- and 4-tile gaps are both consistently
+clearable, a 5-tile gap is not (the player falls in every time), so 4 tiles
+is the widest gap anywhere in this level, on a platform or in a pit.
+Missing either gap's jump drops the player through to whatever's below (the
+pit, in choice #1's case) - a real, if forgiving, cost for going high. The
+low route in both cases is just the unmodified original path.
 
-**Enemy clustering (`ENTITY_SPAWNS` in `level.js`).** Two spots
-deliberately place 3 goombas close together (cols 87/89/91, right under
+**Enemy clustering (`ENTITY_SPAWNS` in `level.js`).** Three spots
+deliberately place goombas close together (cols 87/89/91, right under
 high/low choice #1's bypass; cols 133/136/139, right before the widened
-pit C) instead of the otherwise-even single-goomba spacing used everywhere
-else, so there's a genuine "time this jump/approach right" moment at those
-two spots rather than uniform one-at-a-time encounters throughout the
-level. Both sit directly beneath a high-route bypass, so the elevated path
-is also how a player avoids the cluster entirely, not just a shortcut.
+pit C; cols 160/163/167/170, right under high/low choice #2's bypass)
+instead of the otherwise-even single-goomba spacing used everywhere else,
+so there's a genuine "time this jump/approach right" moment at those spots
+rather than uniform one-at-a-time encounters throughout the level. All
+three sit directly beneath a high-route bypass, so the elevated path is
+also how a player avoids the cluster entirely, not just a shortcut.
 
-**Pit widths (`pits` in `level.js`'s `buildLevel()`).** Deliberately varied
-rather than uniform (1 tile, then 3, then 4 - the last and widest saved for
-right before the final stretch) so the three gaps don't all feel like the
-same jump.
+**Pit widths (`pits` in `level.js`'s `buildLevel()`).** Alternates 4/3/4
+tiles wide rather than uniform, so each pit still takes a real running jump
+but they don't all feel identical. The middle pit is 3 tiles specifically
+so it lines up exactly with high/low choice #1's bridge gap, which spans
+this same pit. (Same in-engine jump testing as the platform gaps above
+confirmed 4 tiles is the widest jumpable gap, so no pit exceeds that.)
 
 **End-of-level scenery (`drawEndPyramid` in `main.js`).** Past the flagpole
 there's no tile structure at all (no more `'C'` castle-block tiles - the
