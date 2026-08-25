@@ -112,15 +112,20 @@ function buildLevel() {
   // cols 73-74 - rather than taking the down-stairs back to ground here,
   // continuing straight across this elevated bridge clears pit B *and* the
   // 3-goomba cluster just past it entirely, grabbing two bonus coin blocks
-  // along the way. It's not free: the bridge's gap spans cols 83-85 -
-  // matching pit B's own span exactly, directly over the pit's void - so
-  // crossing takes one real running jump, not just walking, and missing it
-  // drops straight into the same pit the low route would've had to jump
-  // anyway. The bonus block at col 78 sits well clear on the left side of
-  // the gap. The low route is the plain original one - stairs back down,
-  // jump the pit at ground level, then actually deal with the goombas on
-  // foot.
-  platform(75, 90, 6, [83, 84, 85]);
+  // along the way. It's not free: there are now TWO gaps to clear. The
+  // first, cols 75-77, comes immediately off the peak - a jump right as you
+  // commit to the high route, before you've even reached the first bonus
+  // block. Missing it is a soft landing though (not the same real danger as
+  // the second gap below), since cols 75-77 are also where the hill's own
+  // down-slope (stairsUp(77, 4, -1) above) already has solid steps one or
+  // two rows lower - falling through drops you onto the hillside, not into
+  // open air. The second gap, cols 83-85, matches pit B's own span exactly,
+  // directly over the pit's void - that one *is* a real fall-through, same
+  // as the low route's own pit jump. The bonus block at col 78 sits on the
+  // solid strip between the two gaps. The low route is the plain original
+  // one - stairs back down, jump the pit at ground level, then actually
+  // deal with the goombas on foot.
+  platform(75, 90, 6, [75, 76, 77, 83, 84, 85]);
   block(78, 3, '?');
   block(88, 3, '?');
 
