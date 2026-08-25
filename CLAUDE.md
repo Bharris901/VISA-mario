@@ -594,6 +594,20 @@ steps that entirely, since it doesn't matter how far Mario moved this frame.
 Apply the same "compare against last frame's state" pattern rather than an
 instantaneous-distance heuristic for any future contact-direction check.
 
+**Virtual stick down/up require the drag to actually be vertical-dominant
+(`handleStickMove` in `input.js`).** `Input.down`/`Input.up` used to be set
+from `dy` alone (past `DOWN_THRESH`), independent of `dx` - so a thumb drag
+that was mostly rightward (running) but drifted down past that threshold
+still registered as "down" even though `Input.right` was also true and
+clearly the intended direction. This was a real reported bug: running
+across the top of the secret pipe with an imprecise thumb could pull the
+player down into it with no intent to descend. Both flags now also require
+`Math.abs(dy) > Math.abs(dx)` - down/up only register when the vertical
+component actually dominates the drag, matching how deliberate a press of
+the dedicated DESCEND button already is. Keyboard input isn't affected (a
+key is either pressed or not, so simultaneous ArrowRight+ArrowDown is
+already an intentional two-key press, not analog drift).
+
 **Message overlay renders HTML, not plain text (`UI.showMessage` in
 `ui.js`).** It sets `messageText.innerHTML`, not `.textContent`, so a
 message string can bold a phrase or mark part of itself as a smaller

@@ -68,8 +68,17 @@ function initInput() {
     stick.style.transform = `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px)`;
     Input.left = dx < -DEAD;
     Input.right = dx > DEAD;
-    Input.down = dy > DOWN_THRESH;
-    Input.up = dy < -DOWN_THRESH;
+    // down/up require the drag to be predominantly vertical, not just past
+    // DOWN_THRESH - without this, a thumb mostly dragging right (to run)
+    // that only barely drifts downward past the threshold still registered
+    // as "down", which was enough to walk into the secret pipe by accident
+    // while just trying to run across the top of it. Requiring |dy| to
+    // actually be the dominant component makes "down" require an
+    // intentional mostly-downward push, matching the DESCEND button's own
+    // intentional-press behavior.
+    const verticalDominant = Math.abs(dy) > Math.abs(dx);
+    Input.down = verticalDominant && dy > DOWN_THRESH;
+    Input.up = verticalDominant && dy < -DOWN_THRESH;
   }
 
   dpadZone.addEventListener('touchstart', (e) => {

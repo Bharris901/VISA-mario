@@ -244,7 +244,7 @@ function groundSurfaceRowAt(col) {
 // once without touching where they're placed; koopa entries live in their
 // own list rather than interleaved into GOOMBA_SPAWNS so toggling doesn't
 // require hunting through the goomba list for which rows are koopas.
-const ENABLE_KOOPAS = true;
+const ENABLE_KOOPAS = false;
 
 const GOOMBA_SPAWNS = [
   { type: 'goomba', col: 18 },
