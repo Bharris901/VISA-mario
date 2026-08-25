@@ -636,6 +636,25 @@ future content is too tall to fit even after the above.
 - `MUSIC_FILES`/`LOOP_VOL`/`STING_VOL` — `audio.js` (which `assets/music-*.mp3`
   plays where, and how loud - real audio, so these volumes may need
   ear-tuning rather than the low-effort guesses currently in place).
+- `ENABLE_KOOPAS` — `level.js`, right above `ENTITY_SPAWNS` (whether koopas
+  appear in the level at all; see "Koopas (opt-in)" below).
+
+**Koopas (opt-in, `ENABLE_KOOPAS` in `level.js`).** Koopa movement/shell-kick
+logic, sprites, and collision have been fully implemented all along
+(`createKoopa`, `updateEnemy`'s `e.type === 'koopa'` branches, `SPRITES.KOOPA`
+in `sprites.js`) but were never actually spawned - the level only ever
+placed goombas. `ENTITY_SPAWNS` is now assembled from two separate lists,
+`GOOMBA_SPAWNS` and `KOOPA_SPAWNS`, concatenated only when `ENABLE_KOOPAS`
+is `true`; flipping that one flag to `false` removes every koopa from the
+level with no other changes needed (`ENTITY_SPAWNS` just becomes
+`GOOMBA_SPAWNS` alone). Koopas are kept in their own list rather than
+interleaved into `GOOMBA_SPAWNS` specifically so toggling doesn't require
+hunting through the goomba list for which rows happen to be koopas. Placed
+as standalone encounters (cols 8, 105, 144, 205 - spread across roughly
+each quarter of the level) rather than mixed into the goomba clusters,
+since those clusters are deliberately tuned around the high/low choice
+spots (see "Enemy clustering" above) and adding a different enemy type
+there would muddy that tuning.
 
 **Design invariant to preserve:** there is no game-over state. Every death
 path funnels through `world.onPlayerDeath(reason)`, which shows a "Try again

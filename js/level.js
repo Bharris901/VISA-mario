@@ -229,7 +229,7 @@ function groundSurfaceRowAt(col) {
   return r;
 }
 
-// --- Entity spawns (Goombas only - no green enemies per design) ---
+// --- Entity spawns ---
 // Three spots deliberately cluster goombas close together (87/89/91,
 // 133/136/139, and 160/163/167/170) instead of the otherwise-even
 // single-goomba spacing elsewhere, so there's a real "time this jump right"
@@ -237,7 +237,16 @@ function groundSurfaceRowAt(col) {
 // sit right where a high/low choice is also offered (see platform()/
 // 'High/low choice' above) - the elevated route bypasses the cluster
 // entirely, dealing with them on foot is the cost of staying low.
-const ENTITY_SPAWNS = [
+//
+// Koopas are a separate, easy-to-toggle add-on (previously "no green
+// enemies per design" - that's now just the ENABLE_KOOPAS default, not a
+// hard rule). Flip the flag below to add/remove every koopa in the level at
+// once without touching where they're placed; koopa entries live in their
+// own list rather than interleaved into GOOMBA_SPAWNS so toggling doesn't
+// require hunting through the goomba list for which rows are koopas.
+const ENABLE_KOOPAS = true;
+
+const GOOMBA_SPAWNS = [
   { type: 'goomba', col: 18 },
   { type: 'goomba', col: 33 },
   { type: 'goomba', col: 42 },
@@ -259,6 +268,19 @@ const ENTITY_SPAWNS = [
   { type: 'goomba', col: 170 },
   { type: 'goomba', col: 198 },
 ];
+
+// A handful of standalone koopa encounters spread across the level (not
+// mixed into the goomba clusters above, which are tuned specifically around
+// the high/low choice spots) - one early near the start, then roughly every
+// quarter of the level after that.
+const KOOPA_SPAWNS = [
+  { type: 'koopa', col: 8 },
+  { type: 'koopa', col: 105 },
+  { type: 'koopa', col: 144 },
+  { type: 'koopa', col: 205 },
+];
+
+const ENTITY_SPAWNS = ENABLE_KOOPAS ? GOOMBA_SPAWNS.concat(KOOPA_SPAWNS) : GOOMBA_SPAWNS;
 
 const LEVEL_PIXEL_WIDTH = COLS * TILE;
 const LEVEL_PIXEL_HEIGHT = ROWS * TILE;
