@@ -198,26 +198,37 @@ player choose between an elevated bypass and the plain ground route:
 connected to the ground, unlike `solidGround()`) with specific columns left
 open so crossing it takes a real jump rather than just walking straight
 across. Choice #1 (cols 75-90, row 6) continues the existing small hill's
-own peak height across pit B *and* a 3-goomba cluster just past it, with
-*two* 3-tile gaps and two bonus `'?'` blocks. The first gap (cols 75-77)
-comes immediately off the hill's peak, before the player has even reached
-the first bonus block - but it's a soft fall, not a real death: those same
-columns are also where the hill's own down-slope (`stairsUp(77, 4, -1)`)
-already has solid steps one or two rows lower, so missing this jump just
-drops the player onto the hillside. The second gap (cols 83-85) matches pit
-B's own span exactly, directly over the pit's void - that one *is* a real
-fall-through, same as the low route's own pit jump. Choice #2 (cols
+own peak height across pit B *and* a 3-goomba cluster just past it, with a
+bonus `'?'` block at col 78. There's a soft gap first (cols 75-77, right
+off the hill's peak) - not a real death, since those same columns are also
+where the hill's own down-slope (`stairsUp(77, 4, -1)`) already has solid
+steps one or two rows lower, so missing this jump just drops the player
+onto the hillside. Past that, though, the bridge is a genuine **dead
+end**: cols 83-87 are one continuous gap (pit B's own 83-85 span, merged
+with cols 86-87 deliberately removed from the platform too) - far wider
+than anything jumpable in this level, so there is no clearing it.
+Continuing past col 82 always ends in falling into pit B's real void, the
+same fate as a low-route player who misses that pit's own jump - the high
+route here is a one-way commitment, worth taking only as far as the bonus
+block before turning back. The remaining col 88-90 stub (with its own
+bonus block) is stranded above this gap - unreachable by continuing across
+the bridge, and a straight-up jump from below just bumps its solid
+underside like any block - but it *is* still reachable as an optional
+aside: jumping from the open ground at col 91 and drifting left while
+airborne lands on the stub's own top edge from the side. Choice #2 (cols
 160-172, row 6) is a plain-ground equivalent with a single 4-tile gap (cols
-165-168), bypassing a 4-goomba cluster below - missing it there is a real
-fall too, straight to the ground. Every one of these gaps needs the same
-genuine running jump - empirically tested in-engine (a real running start,
-full-height jump, no early release): 3- and 4-tile gaps are both
+165-168), bypassing a 4-goomba cluster below and landing on a platform of
+its own that a fifth goomba now patrols back and forth across (see "Enemy
+spawn placement" below for how an enemy is placed on an elevated platform
+rather than the ground beneath it) - missing the jump is a real fall too,
+straight to the ground. Every genuinely jumpable gap in this level needs
+the same real running jump - empirically tested in-engine (a real running
+start, full-height jump, no early release): 3- and 4-tile gaps are both
 consistently clearable, a 5-tile gap is not (the player falls in every
-time), so 4 tiles is the widest gap anywhere in this level, on a platform
-or in a pit.
-Missing either gap's jump drops the player through to whatever's below (the
-pit, in choice #1's case) - a real, if forgiving, cost for going high. The
-low route in both cases is just the unmodified original path.
+time), so 4 tiles is the widest jumpable gap anywhere in this level, on a
+platform or in a pit - which is exactly why choice #1's merged 5-tile gap
+is an intentional dead end rather than just a harder jump. The low route
+in both cases is just the unmodified original path.
 
 **Enemy clustering (`ENTITY_SPAWNS` in `level.js`).** Three spots
 deliberately place goombas close together (cols 87/89/91, right under
