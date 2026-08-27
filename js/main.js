@@ -91,7 +91,7 @@ const game = {
 function resetLevel() {
   resetLevelTiles();
   game.player = createPlayer();
-  game.enemies = ENTITY_SPAWNS.map(s => s.type === 'goomba' ? createGoomba(s.col) : createKoopa(s.col));
+  game.enemies = ENTITY_SPAWNS.map(s => s.type === 'goomba' ? createGoomba(s.col, s.row) : createKoopa(s.col));
   game.mushrooms = [];
   game.particles = [];
   game.score = 0;

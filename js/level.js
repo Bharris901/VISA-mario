@@ -267,6 +267,13 @@ const GOOMBA_SPAWNS = [
   { type: 'goomba', col: 167 },
   { type: 'goomba', col: 170 },
   { type: 'goomba', col: 198 },
+  // Patrols choice #2's landing platform (cols 169-172, past its gap) -
+  // `row: 6` places it on that elevated platform instead of the true ground
+  // far below, which is all a plain {col} entry would ever find. It can't
+  // walk off the ends: updateEnemy()'s existing ledge-detection reverses it
+  // at both edges the same way it already does for every ground-level
+  // goomba, so it patrols back and forth across just those 4 tiles.
+  { type: 'goomba', col: 171, row: 6 },
 ];
 
 // A handful of standalone koopa encounters spread across the level (not

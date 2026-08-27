@@ -292,6 +292,17 @@ above the real ground, and misplace the entity up there (this was a real
 bug: a goomba spawned embedded in/against a stair step and read as floating
 next to a wall).
 
+An `ENTITY_SPAWNS` entry can pass an explicit `row` to place a goomba on an
+elevated, disconnected platform (e.g. one of the high/low choice bridges)
+instead - `groundSurfaceRowAt` would otherwise scan straight past the
+platform to the true ground far below it, since the two aren't contiguous.
+`createGoomba(col, row)` uses the passed row directly when given one rather
+than auto-detecting; `updateEnemy`'s existing ledge-detection (see below)
+already keeps it from walking off whatever surface it's actually standing
+on, elevated or not, so no other change is needed for it to patrol back and
+forth on just that platform. Used for the goomba on choice #2's landing
+platform (cols 169-172, past its gap).
+
 **Enemy patrol movement (`updateEnemy` in `entities.js`).** A goomba's
 authoritative direction/speed live in `e.dir` (±1) and `e.moveSpeed` (always
 positive) - `e.vx` is *derived* fresh from `dir * moveSpeed` every frame,

@@ -163,14 +163,23 @@ function shrinkPlayer(p, world) {
 // spawn height is derived from the actual tile grid rather than assuming
 // GROUND_ROW - this is what fixed a goomba spawning embedded in a step and
 // rendering as if floating next to its wall face.
-function createGoomba(col) {
-  const row = groundSurfaceRowAt(col);
+//
+// `row` is optional - pass it to place a goomba on an elevated, disconnected
+// platform (e.g. one of the high/low choice bridges) instead of the true
+// ground below it, which is all groundSurfaceRowAt() would ever find (it
+// scans past the platform to the real ground beneath the gap). Ledge
+// detection in updateEnemy() already keeps any goomba from walking off
+// whatever surface it's actually standing on, elevated or not, so an
+// explicit row patrols back and forth on just that platform with no other
+// changes needed.
+function createGoomba(col, row) {
+  const r = row !== undefined ? row : groundSurfaceRowAt(col);
   // Goomba is 16px tall, shorter than a full TILE (24px), so the resting
   // y is row*TILE - h, not (row-1)*TILE - that formula only happens to work
   // for entities exactly one tile tall (like the koopa below).
   // dir/moveSpeed are the *authoritative* patrol state (see updateEnemy) -
   // vx is just derived from them every frame, never read back as state.
-  return { type: 'goomba', x: col * TILE, y: row * TILE - 16, w: 16, h: 16, dir: -1, moveSpeed: 1.0, vx: -1.0, vy: 0, dead: false, squished: 0, animTimer: 0, animFrame: 0 };
+  return { type: 'goomba', x: col * TILE, y: r * TILE - 16, w: 16, h: 16, dir: -1, moveSpeed: 1.0, vx: -1.0, vy: 0, dead: false, squished: 0, animTimer: 0, animFrame: 0 };
 }
 function createKoopa(col) {
   const row = groundSurfaceRowAt(col);
