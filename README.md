@@ -14,7 +14,9 @@ Memphis Pyramid are real provided images instead.
 The real scavenger-hunt clue is already set in `CLUE_MESSAGE` at the top of
 `js/main.js`, shown as "Congrats Memphis Mario!" followed by the clue
 inside the treasure chest's message screen — update it there if the clue
-ever needs to change.
+ever needs to change. A second screen (`LUNCH_NOTE_MESSAGE`, same file)
+follows right after with a reminder that to-go orders don't count — see
+"How the hidden clue works" below for the full sequence.
 
 ## Running it locally
 
@@ -113,8 +115,12 @@ since dying never actually ends play).
   message card twirls out of it, growing to fill the screen and becoming
   the clue message. The main level's music resumes once the player
   continues.
-- On winning, the clue message is shown, then play resumes right back at
-  the pipe so the player can continue to the flagpole.
+- On winning, the clue message is shown - "Congrats Memphis Mario!" and the
+  numbered pickup instructions, with a "Next Instructions" button instead of
+  a plain continue. That button leads to a second screen (a character
+  reminding players that to-go orders don't count, in a speech bubble) with
+  its own "AWESOME!" button - only *that* one actually resumes play back at
+  the pipe.
 - Reaching the flagpole **without ever finding/winning the secret game**
   shows "You didn't find the hidden clue, start over to try again," and
   restarts the level.

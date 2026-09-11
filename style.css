@@ -149,7 +149,7 @@ body.secret-scene #btn-jump {
   margin: 0 auto 14px auto;
   max-width: 320px;
 }
-#start-btn, #message-btn {
+#start-btn, #message-btn, #lunch-note-btn {
   font-family: inherit;
   font-size: clamp(12px, 1.8vw + 1vh, 19px);
   font-weight: bold;
@@ -169,7 +169,7 @@ body.secret-scene #btn-jump {
   margin: 0 auto;
   white-space: normal;
 }
-#start-btn:active, #message-btn:active { transform: scale(0.96); }
+#start-btn:active, #message-btn:active, #lunch-note-btn:active { transform: scale(0.96); }
 
 .message-card { max-width: 420px; }
 #message-icon {
@@ -186,14 +186,84 @@ body.secret-scene #btn-jump {
   white-space: pre-line;
   margin-bottom: 24px;
 }
-/* A secondary note under a message's main line (e.g. the clue's phone-order
-   hint) - noticeably smaller than the main text but still fully legible,
-   not just a faint aside. */
+/* A secondary note under a message's main line, styled noticeably smaller
+   than the main text but still fully legible - not currently used by any
+   message, but kept as a ready-made option for one (see UI.showMessage's
+   HTML-rendering note in ui.js). */
 .clue-hint {
   display: block;
   margin-top: 6px;
   font-size: 0.72em;
   opacity: 0.85;
+}
+
+/* ---------- Lunch note screen (character + speech bubble) ---------- */
+/* Wider than .message-card on purpose - the speech bubble is meant to take
+   up most of the screen, not sit in a narrow centered column. */
+.lunch-note-card {
+  max-width: min(96vw, 960px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(14px, 2vh, 28px);
+}
+.lunch-note-row {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2.4vw, 28px);
+  width: 100%;
+}
+#lunch-note-img {
+  flex: 0 0 auto;
+  width: clamp(90px, 20vw, 190px);
+  height: auto;
+  /* This is a real (non-pixel-art) image - override the page-wide pixelated
+     rendering (see #game in this file / the smoothing gotcha in CLAUDE.md)
+     so it scales smoothly instead of looking blocky. */
+  image-rendering: auto;
+}
+/* min-width: 0 lets this flex item actually shrink below its content's
+   natural width so long text wraps instead of overflowing the row - the
+   default flex-basis (auto, sized to content) would otherwise win out. */
+.speech-bubble {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #fff;
+  color: #111;
+  text-align: left;
+  border-radius: 16px;
+  padding: clamp(14px, 2vw + 1vh, 26px);
+  font-size: clamp(13px, 1.6vw + 0.8vh, 19px);
+  line-height: 1.5;
+}
+/* The pointer triangle on the bubble's left edge, aimed back at the
+   character art next to it. */
+.speech-bubble::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -14px;
+  transform: translateY(-50%);
+  border-style: solid;
+  border-width: 10px 14px 10px 0;
+  border-color: transparent #fff transparent transparent;
+}
+#lunch-note-text { margin: 0; white-space: pre-line; }
+
+/* Below ~560px wide there isn't room for character + bubble side by side
+   without the bubble's text getting uncomfortably narrow - stack instead,
+   character on top, pointer moved from the bubble's left edge to its top. */
+@media (max-width: 560px) {
+  .lunch-note-row { flex-direction: column; }
+  #lunch-note-img { width: clamp(70px, 30vw, 120px); }
+  .speech-bubble::before {
+    top: -14px; left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 10px 14px 10px;
+    border-color: transparent transparent #fff transparent;
+  }
 }
 
 /* ---------- Touch Controls ---------- */

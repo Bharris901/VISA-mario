@@ -6,6 +6,7 @@ const UI = {
   scoreEl: null, coinEl: null, timeEl: null, livesEl: null, worldEl: null,
   messageOverlay: null, messageText: null, messageBtn: null, messageIcon: null,
   coinIconEl: null,
+  lunchNoteOverlay: null, lunchNoteText: null, lunchNoteBtn: null,
 
   init() {
     this.scoreEl = document.getElementById('hud-score');
@@ -18,6 +19,9 @@ const UI = {
     this.messageBtn = document.getElementById('message-btn');
     this.messageIcon = document.getElementById('message-icon');
     this.coinIconEl = document.getElementById('hud-coin-icon');
+    this.lunchNoteOverlay = document.getElementById('lunch-note-overlay');
+    this.lunchNoteText = document.getElementById('lunch-note-text');
+    this.lunchNoteBtn = document.getElementById('lunch-note-btn');
 
     // Draw the real coin sprite into the HUD icon once (rather than an
     // emoji, which rendered as a dull silver glyph on iOS instead of gold).
@@ -41,10 +45,10 @@ const UI = {
   // `icon`, if given, is a baked sprite canvas (e.g. SPRITES.grimaceFace)
   // shown above the message text. `text` is rendered as HTML (not plain
   // text) so a message can bold a phrase or mark part of itself as a
-  // smaller secondary hint (see CLUE_MESSAGE in main.js and the
-  // .clue-hint rule in style.css) - every other message in the game is a
-  // plain string with no HTML-significant characters, so this is a safe
-  // superset of the old textContent behavior for them.
+  // smaller secondary hint (see the `.clue-hint` rule in style.css) -
+  // every other message in the game is a plain string with no
+  // HTML-significant characters, so this is a safe superset of the old
+  // textContent behavior for them.
   showMessage(text, onContinue, buttonLabel = 'CONTINUE', icon = null) {
     this.messageText.innerHTML = text;
     this.messageBtn.textContent = buttonLabel;
@@ -64,5 +68,23 @@ const UI = {
       if (onContinue) onContinue();
     };
     this.messageBtn.addEventListener('click', handler);
+  },
+
+  // A single-purpose, one-off screen (the "sit down for lunch" aside right
+  // after the clue message) - a wide character-plus-speech-bubble layout
+  // rather than the standard centered message card, so it gets its own
+  // dedicated overlay/markup instead of a variant of showMessage() above.
+  // Same button-handler pattern as showMessage() otherwise: `text` is HTML
+  // for the same reason (a future edit might want to bold a word), and the
+  // listener is added/removed per call rather than left permanently bound.
+  showLunchNote(text, onContinue) {
+    this.lunchNoteText.innerHTML = text;
+    this.lunchNoteOverlay.classList.remove('hidden');
+    const handler = () => {
+      this.lunchNoteOverlay.classList.add('hidden');
+      this.lunchNoteBtn.removeEventListener('click', handler);
+      if (onContinue) onContinue();
+    };
+    this.lunchNoteBtn.addEventListener('click', handler);
   },
 };

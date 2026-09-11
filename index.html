@@ -18,11 +18,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Memphis Mario" />
 <meta name="theme-color" content="#4a89e0" />
-<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=35" />
-<link rel="icon" href="assets/icons/favicon-32.png?v=35" />
-<link rel="manifest" href="manifest.json?v=35" />
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=36" />
+<link rel="icon" href="assets/icons/favicon-32.png?v=36" />
+<link rel="manifest" href="manifest.json?v=36" />
 
-<link rel="stylesheet" href="style.css?v=35" />
+<link rel="stylesheet" href="style.css?v=36" />
 </head>
 <body>
 
@@ -80,15 +80,33 @@
     </div>
   </div>
 
-  <script src="js/sprites.js?v=35"></script>
-  <script src="js/audio.js?v=35"></script>
-  <script src="js/input.js?v=35"></script>
-  <script src="js/level.js?v=35"></script>
-  <script src="js/entities.js?v=35"></script>
-  <script src="js/physics.js?v=35"></script>
-  <script src="js/secretRoom.js?v=35"></script>
-  <script src="js/minigame.js?v=35"></script>
-  <script src="js/ui.js?v=35"></script>
-  <script src="js/main.js?v=35"></script>
+  <!-- The "sit down for lunch" aside shown right after the clue message -
+       see LUNCH_NOTE_MESSAGE/UI.showLunchNote in js/main.js and js/ui.js.
+       Deliberately its own overlay/layout (character art on the left, the
+       message in a speech bubble to its right) rather than a variant of
+       #message-overlay above, since that one is a narrow centered card and
+       this is meant to read as a wide two-up scene. -->
+  <div id="lunch-note-overlay" class="overlay hidden">
+    <div class="lunch-note-card">
+      <div class="lunch-note-row">
+        <img id="lunch-note-img" src="assets/lunch-guide-robot.png?v=36" alt="" />
+        <div class="speech-bubble">
+          <p id="lunch-note-text"></p>
+        </div>
+      </div>
+      <button id="lunch-note-btn">AWESOME!</button>
+    </div>
+  </div>
+
+  <script src="js/sprites.js?v=36"></script>
+  <script src="js/audio.js?v=36"></script>
+  <script src="js/input.js?v=36"></script>
+  <script src="js/level.js?v=36"></script>
+  <script src="js/entities.js?v=36"></script>
+  <script src="js/physics.js?v=36"></script>
+  <script src="js/secretRoom.js?v=36"></script>
+  <script src="js/minigame.js?v=36"></script>
+  <script src="js/ui.js?v=36"></script>
+  <script src="js/main.js?v=36"></script>
 </body>
 </html>

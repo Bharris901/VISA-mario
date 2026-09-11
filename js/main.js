@@ -2,19 +2,34 @@
 // Game orchestration: scene/state machine, camera, render loop.
 // ---------------------------------------------------------------------------
 
-// Rendered as HTML (see UI.showMessage) so "when you order food" can be
-// bolded and the hint can be styled smaller (.clue-hint in style.css) while
-// staying clearly visible underneath the main clue line.
+// Rendered as HTML (see UI.showMessage) - kept as a superset of plain text
+// (see the note on this in CLAUDE.md) even though this particular message
+// doesn't currently use any inline tags.
 const CLUE_MESSAGE =
   "Congrats Memphis Mario!\n\n" +
-  "Head to Dim Sum King for lunch. Show your waiter the playing card from your bag <b>when you order food</b>.\n" +
-  "<span class=\"clue-hint\">(Hint: if you place an order over the phone you won’t be able to show your card)</span>";
+  "To receive your next clue:\n\n" +
+  "1. Go to Dim Sum King\n" +
+  "2. Sit down & eat lunch with your team\n" +
+  "3. When you order your lunch, show the server the playing card in your bag";
+
+// Shown on a second, dedicated screen (UI.showLunchNote) right after the
+// clue message above - a wide "character + speech bubble" layout rather
+// than the standard centered message card, since this is a single one-off
+// aside rather than a reusable message shape. Its own continue button is
+// what actually resumes play back at the secret pipe (see the win-message
+// wiring further below) - CLUE_MESSAGE's own button just advances to this
+// screen first.
+const LUNCH_NOTE_MESSAGE =
+  "To-go orders are not allowed, and will not lead you to your next clue. " +
+  "You &amp; your team must sit down at a table and enjoy a lunch break " +
+  "together. All teams will be doing this, so you won't be falling behind!";
 
 const BEALE_SPEECH_TEXT = "I need your help to match the cards in order to reveal the next clue! Tap to begin.";
 
 const NOT_FOUND_MESSAGE = "You made it to the end! But…\nYou didn't find the clue :(\nStart over to try again!";
 const FOUND_BUT_FINISHED_MESSAGE =
   "🏁 Level complete!\nYou already found the hidden clue — good luck with the rest of the hunt!";
+
 
 // Native sprite px -> on-screen px. The redesigned Mario sprites (see
 // sprites.js) are baked at a higher native resolution than before (big:
@@ -777,18 +792,23 @@ function updateBealeGame(dt) {
       game.clueFound = true;
       game.state = 'frozen';
       UI.showMessage(CLUE_MESSAGE, () => {
-        // send Mario back up the pipe to keep playing toward the flagpole,
-        // and bring the main level music back (it was paused for the
-        // mini-game's own loop when the card grid started)
-        game.player.inPipe = false;
-        game.player.x = (SECRET_PIPE_COL) * TILE;
-        game.player.y = (GROUND_ROW - 4) * TILE;
-        game.player.vx = 0; game.player.vy = 0;
-        game.beale = null;
-        game.memory = null;
-        game.state = 'playing';
-        Sfx.startMusic();
-      }, 'AWESOME!');
+        // A second, dedicated screen (the "sit down for lunch" note) comes
+        // next rather than resuming play immediately - see LUNCH_NOTE_MESSAGE/
+        // UI.showLunchNote. Only *its* continue button actually resumes play.
+        UI.showLunchNote(LUNCH_NOTE_MESSAGE, () => {
+          // send Mario back up the pipe to keep playing toward the flagpole,
+          // and bring the main level music back (it was paused for the
+          // mini-game's own loop when the card grid started)
+          game.player.inPipe = false;
+          game.player.x = (SECRET_PIPE_COL) * TILE;
+          game.player.y = (GROUND_ROW - 4) * TILE;
+          game.player.vx = 0; game.player.vy = 0;
+          game.beale = null;
+          game.memory = null;
+          game.state = 'playing';
+          Sfx.startMusic();
+        });
+      }, 'Next Instructions');
     }
   }
 }

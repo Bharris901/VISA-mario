@@ -590,6 +590,22 @@ there's no player-controlled "walk to the chest" sub-phase anymore (there
 used to be one) and so no D-pad re-enabling inside this scene at all - the
 D-pad/JUMP/DESCEND stay hidden for the *entire* secret scene, no exceptions.
 
+**A second message screen follows the clue (`UI.showLunchNote`, `js/ui.js`).**
+`CLUE_MESSAGE`'s own button (labeled "Next Instructions", not "AWESOME!")
+doesn't resume play - it shows a second, dedicated overlay
+(`LUNCH_NOTE_MESSAGE`, a reminder that to-go orders don't count toward the
+clue) whose *own* "AWESOME!" button is what actually sends the player back
+up the pipe. This is deliberately a separate overlay/markup
+(`#lunch-note-overlay` in `index.html`) rather than a second call to the
+existing `UI.showMessage()` - that one is a narrow centered card (icon
+above text above button), while this screen is meant to read as a wide
+two-up scene: a character image (`assets/lunch-guide-robot.png`) on the
+left, the message in a CSS speech bubble (`.speech-bubble`, pointer via a
+`::before` triangle) taking up most of the remaining width, stacking
+vertically instead below a `560px`-wide breakpoint. `game.state` stays
+`'frozen'` across both screens - only the second one's continue callback
+actually flips it back to `'playing'`.
+
 **Audio (`js/audio.js`).** A single `Sfx` IIFE wraps WebAudio: one-shot SFX
 via `tone()`/`slide()` (`toneAt()` is only still used by nothing now that
 the two music loops are real audio - kept for any future procedural

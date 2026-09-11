@@ -30,6 +30,20 @@ so opening the lid correctly makes the chest taller on screen instead of
 the two images just swapping within an identical box. Neither Mario nor
 the chest ever animates a pose or moves once landed in this scene.
 
+## `lunch-guide-robot.png`
+
+A user-provided character illustration shown on the "sit down for lunch"
+screen (`UI.showLunchNote`, `js/ui.js`/`js/main.js`) right after the clue
+message - laid out in plain HTML/CSS (`.lunch-note-*`/`.speech-bubble` in
+`style.css`), not drawn into the game canvas like the other real images on
+this page. Unlike those, its background *was* touched: the source had a
+flat white background (like the pyramid art below), so it was chroma-keyed
+to transparent and cropped to its tight content bounding box once before
+committing, the same idea as `getEndPyramidCanvas()`'s runtime version but
+done as a one-time file edit instead, since this image has exactly one use
+and there's no second consumer (like the pyramid's card-icon reuse) that
+still needs the original white-background version.
+
 ## Memory-game card icons
 
 The 20-card matching game has 10 icon pairs, all real user-provided artwork,
