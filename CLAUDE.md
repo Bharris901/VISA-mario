@@ -678,6 +678,34 @@ everywhere else in the game). `.overlay` now also carries `overflow-y:
 auto` + `touch-action: pan-y` as a fallback of last resort, in case some
 future content is too tall to fit even after the above.
 
+**Gotcha hit a second time, for real, on a real device:** `#message-text`
+itself had the exact same `vw`-only clamp mistake (`.start-card`'s own text
+was fixed above, but this sibling wasn't touched at the time) - invisible
+until `CLUE_MESSAGE` grew into a longer numbered list, at which point a
+real iPhone screenshot (heavy Safari chrome eating most of the landscape
+height) showed the heading cut off above the visible area and the button
+cut off below it, with no visible hint that scrolling would reveal either -
+exactly the failure mode `.overlay`'s `overflow-y: auto` fallback exists
+for, and not good enough on its own for a message whose entire point is
+getting the player to notice and tap a button. Fixed the same way, plus a
+bit more: `#message-text`'s font-size clamp is now weighted *toward* `vh`
+(`1vw + 1.8vh`, not equal parts) since height is specifically the
+constrained dimension; `.message-card`'s `max-width` grew from a flat
+`420px` to `min(95vw, 760px)` so long lines have room to stay on one line
+instead of wrapping to begin with (fewer lines needed beats a smaller font
+for the same content); and `.overlay`'s own vertical padding plus the
+button's vertical padding are now `vh`-clamped too, since on a short enough
+viewport even that fixed padding was worth reclaiming. `.lunch-note-*`
+(the screen right after this one - see above) had a related version of the
+same bug: `#lunch-note-img`'s width clamp had no `vh` term either, so on a
+short viewport the (tall, standing) character image alone stayed big enough
+to push its own screen's button off the bottom - fixed by nesting a `vh`
+cap inside its width clamp (`clamp(60px, min(20vw, 38vh), 190px)`) so the
+image shrinks with height too, not just width. **Any text or image in an
+overlay needs a height-reactive size, not just a width-reactive one** - a
+short-but-wide viewport (heavy browser chrome in landscape) is a real,
+already-twice-reported case, not a hypothetical one.
+
 **Key config knobs a task will usually touch:**
 - `CLUE_MESSAGE`, `BEALE_SPEECH_TEXT`, `NOT_FOUND_MESSAGE`,
   `FOUND_BUT_FINISHED_MESSAGE` — top of `main.js`.

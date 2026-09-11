@@ -93,7 +93,12 @@ body.secret-scene #btn-jump {
   display: flex; align-items: center; justify-content: center;
   z-index: 50;
   text-align: center;
-  padding: 20px;
+  /* Vertical padding shrinks on a short viewport (vh-reactive, not flat) so
+     it doesn't eat into the already-tight height budget a long message
+     needs - see the .message-card/#message-text notes below for the rest
+     of that fix. Horizontal stays a flat, generous 20px; width pressure is
+     handled by each card's own max-width instead. */
+  padding: clamp(6px, 3vh, 20px) 20px;
   /* Fallback for a viewport too short to fit the card at all (a phone
      landscape with a lot of browser chrome eating the height) - content
      normally fits without scrolling, this just means it's reachable rather
@@ -153,7 +158,10 @@ body.secret-scene #btn-jump {
   font-family: inherit;
   font-size: clamp(12px, 1.8vw + 1vh, 19px);
   font-weight: bold;
-  padding: 10px 16px;
+  /* Vertical padding is vh-reactive for the same short-viewport reason as
+     .overlay's own padding above - horizontal stays flat, it's height
+     that's actually under pressure. */
+  padding: clamp(6px, 1.8vh, 10px) 16px;
   background: #e52521;
   color: #fff;
   border: 4px solid #fff;
@@ -171,7 +179,18 @@ body.secret-scene #btn-jump {
 }
 #start-btn:active, #message-btn:active, #lunch-note-btn:active { transform: scale(0.96); }
 
-.message-card { max-width: 420px; }
+/* max-width was a flat 420px - too narrow for a longer message (the clue's
+   numbered pickup list): every item wrapped to 2 lines, and on a real short
+   landscape viewport (heavy Safari chrome eating most of the height) the
+   resulting taller block pushed the heading off the top and the button off
+   the bottom, with no visible cue that scrolling further would reveal
+   either - a real reported bug, and unacceptable for a message whose whole
+   point is getting the player to tap the button. Widening the card first
+   (so long lines have room to stay on one line each) does most of the work;
+   the vh-reactive font-size below (see the "Overlay cards" note in
+   CLAUDE.md - vw-only clamps don't react to a short-but-wide viewport at
+   all) handles what's left. */
+.message-card { max-width: min(95vw, 760px); }
 #message-icon {
   display: block;
   width: 96px; height: 96px;
@@ -181,10 +200,14 @@ body.secret-scene #btn-jump {
 }
 #message-icon.hidden { display: none; }
 #message-text {
-  font-size: clamp(15px, 2.6vw, 20px);
-  line-height: 1.6;
+  /* Weighted toward vh (not just added, like most other clamps here) since
+     height is specifically the constrained dimension this is guarding
+     against - a wide-but-short viewport should shrink this well below its
+     vw contribution alone. */
+  font-size: clamp(12px, 1vw + 1.8vh, 20px);
+  line-height: 1.35;
   white-space: pre-line;
-  margin-bottom: 24px;
+  margin-bottom: clamp(8px, 2vh, 24px);
 }
 /* A secondary note under a message's main line, styled noticeably smaller
    than the main text but still fully legible - not currently used by any
@@ -216,7 +239,12 @@ body.secret-scene #btn-jump {
 }
 #lunch-note-img {
   flex: 0 0 auto;
-  width: clamp(90px, 20vw, 190px);
+  /* Height-reactive too (via the nested min()), not just width - this image
+     is tall relative to its width (a standing character), so on a short
+     viewport a width-only clamp let it stay large enough on its own to push
+     the button off the bottom, the same class of bug #message-text had
+     (see the note on that above). */
+  width: clamp(60px, min(20vw, 38vh), 190px);
   height: auto;
   /* This is a real (non-pixel-art) image - override the page-wide pixelated
      rendering (see #game in this file / the smoothing gotcha in CLAUDE.md)
@@ -234,9 +262,11 @@ body.secret-scene #btn-jump {
   color: #111;
   text-align: left;
   border-radius: 16px;
-  padding: clamp(14px, 2vw + 1vh, 26px);
-  font-size: clamp(13px, 1.6vw + 0.8vh, 19px);
-  line-height: 1.5;
+  padding: clamp(8px, 1vw + 1.4vh, 26px);
+  /* Weighted toward vh for the same short-viewport reason as
+     #message-text's font-size above. */
+  font-size: clamp(12px, 0.8vw + 1.6vh, 19px);
+  line-height: 1.4;
 }
 /* The pointer triangle on the bubble's left edge, aimed back at the
    character art next to it. */
@@ -257,7 +287,7 @@ body.secret-scene #btn-jump {
    character on top, pointer moved from the bubble's left edge to its top. */
 @media (max-width: 560px) {
   .lunch-note-row { flex-direction: column; }
-  #lunch-note-img { width: clamp(70px, 30vw, 120px); }
+  #lunch-note-img { width: clamp(50px, min(30vw, 22vh), 120px); }
   .speech-bubble::before {
     top: -14px; left: 50%;
     transform: translateX(-50%);
