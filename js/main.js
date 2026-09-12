@@ -2,11 +2,11 @@
 // Game orchestration: scene/state machine, camera, render loop.
 // ---------------------------------------------------------------------------
 
-// Rendered as HTML (see UI.showMessage) - kept as a superset of plain text
-// (see the note on this in CLAUDE.md) even though this particular message
-// doesn't currently use any inline tags.
+// Rendered as HTML (see UI.showMessage) - the heading is wrapped in
+// .message-heading (style.css) to match the "MEMPHIS MARIO" title's own
+// gold-on-shadow look from the welcome screen, just smaller.
 const CLUE_MESSAGE =
-  "Congrats Memphis Mario!\n\n" +
+  '<span class="message-heading">Congrats Memphis Mario!</span>\n\n' +
   "To receive your next clue:\n\n" +
   "1. Go to Dim Sum King\n" +
   "2. Sit down & eat lunch with your team\n" +

@@ -209,6 +209,20 @@ body.secret-scene #btn-jump {
   white-space: pre-line;
   margin-bottom: clamp(8px, 2vh, 24px);
 }
+/* A message's opening heading line (e.g. CLUE_MESSAGE's "Congrats Memphis
+   Mario!"), styled to match .start-card h1's treatment on the welcome
+   screen - same gold-on-shadow look, just scaled down (em-relative, so it
+   still shrinks with #message-text's own vh-reactive size on a short
+   viewport rather than needing its own clamp) since a message card is a
+   lot smaller than the full welcome screen. */
+.message-heading {
+  display: block;
+  font-size: 1.35em;
+  font-weight: bold;
+  color: #fbd000;
+  text-shadow: 2px 2px 0 #e52521, 4px 4px 0 #000;
+  letter-spacing: 1px;
+}
 /* A secondary note under a message's main line, styled noticeably smaller
    than the main text but still fully legible - not currently used by any
    message, but kept as a ready-made option for one (see UI.showMessage's
@@ -221,9 +235,18 @@ body.secret-scene #btn-jump {
 }
 
 /* ---------- Lunch note screen (character + speech bubble) ---------- */
-/* Wider than .message-card on purpose - the speech bubble is meant to take
-   up most of the screen, not sit in a narrow centered column. */
+/* Wider than .message-card on purpose - a two-up character+bubble scene
+   needs more room than a narrow centered column, even though the bubble
+   itself is capped well short of the full card width (see .speech-bubble's
+   own max-width below) so it doesn't run to the screen edge. */
 .lunch-note-card {
+  /* width: 100% (not just max-width) so the card actually fills up to that
+     cap rather than shrinking to fit its content - now that the bubble
+     below has its own max-width, a shrink-to-fit card would hug the
+     image+bubble pair and end up centered with equal (too much) margin on
+     both sides, instead of the image staying near the left edge with the
+     freed-up space landing specifically on the right. */
+  width: 100%;
   max-width: min(96vw, 960px);
   margin: 0 auto;
   display: flex;
@@ -253,11 +276,18 @@ body.secret-scene #btn-jump {
 }
 /* min-width: 0 lets this flex item actually shrink below its content's
    natural width so long text wraps instead of overflowing the row - the
-   default flex-basis (auto, sized to content) would otherwise win out. */
+   default flex-basis (auto, sized to content) would otherwise win out.
+   max-width caps how far it's allowed to *grow*, too - flex: 1 1 auto would
+   otherwise stretch it all the way to the row's own right edge (touching
+   the screen edge on a wide viewport, with the last line barely wrapping
+   at all); capping it both leaves a real margin on the right (the row
+   doesn't have another flex item to claim that leftover space) and forces
+   more text per screen onto more lines instead of stretching wide and flat. */
 .speech-bubble {
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
+  max-width: min(58vw, 560px);
   background: #fff;
   color: #111;
   text-align: left;
@@ -266,6 +296,7 @@ body.secret-scene #btn-jump {
   /* Weighted toward vh for the same short-viewport reason as
      #message-text's font-size above. */
   font-size: clamp(12px, 0.8vw + 1.6vh, 19px);
+  font-weight: bold;
   line-height: 1.4;
 }
 /* The pointer triangle on the bubble's left edge, aimed back at the

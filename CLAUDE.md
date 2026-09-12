@@ -600,11 +600,31 @@ up the pipe. This is deliberately a separate overlay/markup
 existing `UI.showMessage()` - that one is a narrow centered card (icon
 above text above button), while this screen is meant to read as a wide
 two-up scene: a character image (`assets/lunch-guide-robot.png`) on the
-left, the message in a CSS speech bubble (`.speech-bubble`, pointer via a
-`::before` triangle) taking up most of the remaining width, stacking
-vertically instead below a `560px`-wide breakpoint. `game.state` stays
-`'frozen'` across both screens - only the second one's continue callback
-actually flips it back to `'playing'`.
+left, the message (bold) in a CSS speech bubble (`.speech-bubble`, pointer
+via a `::before` triangle) to its right, stacking vertically instead below
+a `560px`-wide breakpoint. `game.state` stays `'frozen'` across both
+screens - only the second one's continue callback actually flips it back
+to `'playing'`.
+
+**Gotcha already hit once: a flex item's own `max-width` doesn't create a
+visible margin unless its *container* actually fills the available width.**
+`.speech-bubble` originally had no `max-width` at all (`flex: 1 1 auto`
+alone let it grow to fill whatever space was left in the row), which on a
+real wide phone screenshot meant its right edge ran almost to the screen
+edge with barely any text wrapping. Adding `max-width` to `.speech-bubble`
+alone wasn't enough, though: `.lunch-note-card` had no explicit `width`, so
+once its flex children (the row) stopped being forced to stretch by the
+now-capped bubble, the whole card shrank to fit its content and centered
+itself in the overlay - moving the *character image* away from the left
+edge too, and leaving equal (too much) margin on both sides instead of the
+intended "image stays put, margin shows up specifically on the right."
+Fixing it required both: `.lunch-note-card` needed an explicit `width:
+100%` (so it actually fills up to its own `max-width` instead of
+shrinking-to-fit), *and* `.speech-bubble` needed its `max-width` - together
+these leave the bubble's own unclaimed flex space sitting at the *end* of
+the row (the right side, since `.lunch-note-row` has no other flex-grow
+sibling after it to claim that space) rather than never existing in the
+first place.
 
 **Audio (`js/audio.js`).** A single `Sfx` IIFE wraps WebAudio: one-shot SFX
 via `tone()`/`slide()` (`toneAt()` is only still used by nothing now that
@@ -649,14 +669,16 @@ already an intentional two-key press, not analog drift).
 **Message overlay renders HTML, not plain text (`UI.showMessage` in
 `ui.js`).** It sets `messageText.innerHTML`, not `.textContent`, so a
 message string can bold a phrase or mark part of itself as a smaller
-secondary note - see `CLUE_MESSAGE`'s `<b>`/`<span class="clue-hint">` (the
-`.clue-hint` rule is in `style.css`; `white-space: pre-line` still honors
-plain `\n` line breaks the same as before, even mixed with inline tags).
-Every other message in the game is a plain string with no HTML-significant
-characters, so this was a safe superset of the old behavior for them - but
-any future message text that needs a literal `<`, `>`, or `&` would need to
-escape it first, since it's no longer auto-escaped the way `.textContent`
-used to guarantee.
+secondary note - see `CLUE_MESSAGE`'s `<span class="message-heading">`
+(styled to match `.start-card h1`'s welcome-screen title treatment, see
+below) and the still-available `.clue-hint` rule in `style.css` for a
+smaller secondary note (`white-space: pre-line` still honors plain `\n`
+line breaks the same as before, even mixed with inline tags). Every other
+message in the game is a plain string with no HTML-significant characters,
+so this was a safe superset of the old behavior for them - but any future
+message text that needs a literal `<`, `>`, or `&` would need to escape it
+first, since it's no longer auto-escaped the way `.textContent` used to
+guarantee.
 
 **Overlay cards (`.start-card`/`.message-card` in `style.css`).** `.overlay`
 centers its card via flex, but that only centers the *card* as a whole -
