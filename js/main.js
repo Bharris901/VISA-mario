@@ -76,8 +76,13 @@ function resetLevelTiles() {
 // update() - so grabbing higher up naturally takes longer for both, and
 // grabbing anywhere below the flag's own start means Mario (a shorter
 // distance at that same speed) reaches the bottom before the flag does.
+// FLAG_WIDTH/FLAG_HEIGHT match flagSprite's own native size (sprites.js) -
+// baked with the "901" text already sized to fit at exactly this draw
+// size, so this is a 1:1 blit, not a scale-up.
+const FLAG_WIDTH = 26;
+const FLAG_HEIGHT = 21;
 const FLAG_TOP_Y = FLAG_TOP_ROW * TILE + 4; // matches the flag sprite's draw offset from the pole top
-const FLAG_BOTTOM_Y = GROUND_ROW * TILE - 14; // rests with its bottom edge at the ground line
+const FLAG_BOTTOM_Y = GROUND_ROW * TILE - FLAG_HEIGHT; // rests with its bottom edge at the ground line
 const FLAG_SLIDE_MS = 650; // time a full-height slide (grabbed at the very top) takes
 const FLAG_SLIDE_SPEED = (FLAG_BOTTOM_Y - FLAG_TOP_Y) / FLAG_SLIDE_MS; // px/ms, shared by Mario + flag
 
@@ -378,7 +383,7 @@ function drawLevel(camX) {
   const poleTopY = FLAG_TOP_ROW * TILE;
   const poleCenterX = FLAG_COL * TILE - camX + TILE / 2;
   drawSprite(SPRITES.ball, poleCenterX - 8, poleTopY - 12, 16, 16);
-  drawSprite(SPRITES.flag, poleCenterX - 24, game.flagY, 24, 14);
+  drawSprite(SPRITES.flag, poleCenterX - FLAG_WIDTH, game.flagY, FLAG_WIDTH, FLAG_HEIGHT);
 
   drawEndPyramid(camX);
 }

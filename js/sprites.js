@@ -700,27 +700,43 @@ const flagpoleTile = M([
   '.......gg.......',
 ], PAL.flagpole);
 
-// A proper triangular pennant (top edge + a full-height edge against the
-// pole + a diagonal hypotenuse), not the old bordered rectangle - baked at
-// 24x14 to match the size it's actually drawn at (see drawLevel() in
-// main.js) for a clean 1:1 blit, same reasoning as the goomba/mushroom
-// redesigns. The small accent mark is a simplified stand-in for the
-// reference's icon, not a literal reproduction of it.
+// A pennant with "901" (the scavenger hunt's world number, matching the
+// HUD's "WORLD 9-0-1") baked right into the flag in a simple blocky 5x7
+// pixel-font, black-on-white for maximum contrast. Unlike a plain
+// triangular pennant, this needs a solid rectangular field for the digits
+// to sit in without the diagonal cutting into any of them - rows 0-10 are
+// a full-width rectangle (holds the text, plus a 2px margin above/below
+// it), and only rows 11-20 taper down to a point, giving the classic
+// swallow-tail pennant tail below the text instead of from the very top.
+// Baked at 26x21 (up from the old plain pennant's 24x14 - the extra size
+// is specifically so the digits have room to be legible) to match the
+// size it's actually drawn at (see drawLevel() in main.js, FLAG_WIDTH/
+// FLAG_HEIGHT) for a clean 1:1 blit, same reasoning as the goomba/
+// mushroom redesigns. Written as literal numbers here rather than shared
+// constants - like PIPE_W/PIPE_H below, this file loads before main.js
+// and can't read its top-level consts yet.
 const flagSprite = M([
-  'wwwwwwwwwwwwwwwwwwwwwwww',
-  '..wwwwwwwwwwwwwwwwwwwwww',
-  '....wwwwwwwwwwwwwwwwwwww',
-  '.....wwwwwwwwwwwwwwwwwww',
-  '.......wwwwwwwwwwwwwwwww',
-  '.........wwwwggwwwwwwwww',
-  '...........wggggwwwwwwww',
-  '...........ggwwggwwwwwww',
-  '............ggggwwwwwwww',
-  '................wwwwwwww',
-  '..................wwwwww',
-  '...................wwwww',
-  '.....................www',
-  '.......................w',
+  'wwwwwwwwwwwwwwwwwwwwwwwwww',
+  'wwwwwwwwwwwwwwwwwwwwwwwwww',
+  'wwwwwkkkwwwkkkwwwwkwwwwwww',
+  'wwwwkwwwkwkwwwkwwkkwwwwwww',
+  'wwwwkwwwkwkwwwkwwwkwwwwwww',
+  'wwwwwkkkkwkwwwkwwwkwwwwwww',
+  'wwwwwwwwkwkwwwkwwwkwwwwwww',
+  'wwwwkwwwkwkwwwkwwwkwwwwwww',
+  'wwwwwkkkwwwkkkwwwkkkwwwwww',
+  'wwwwwwwwwwwwwwwwwwwwwwwwww',
+  'wwwwwwwwwwwwwwwwwwwwwwwwww',
+  'wwwwwwwwwwwwwwwwwwwwwwwwww',
+  '...wwwwwwwwwwwwwwwwwwwwwww',
+  '......wwwwwwwwwwwwwwwwwwww',
+  '........wwwwwwwwwwwwwwwwww',
+  '...........wwwwwwwwwwwwwww',
+  '..............wwwwwwwwwwww',
+  '.................wwwwwwwww',
+  '...................wwwwwww',
+  '......................wwww',
+  '.........................w',
 ], PAL.flagpole);
 
 // Small ball finial for the top of the (now shortened) flagpole, now with

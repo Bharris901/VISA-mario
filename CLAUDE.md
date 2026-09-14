@@ -278,19 +278,30 @@ image's own canvas happens to end.
 flag-related code in `main.js`).** Redesigned to match a reference image: a
 brighter green pole/ball (own dedicated `PAL.flagpole`, so it doesn't affect
 `PAL.misc`'s green bushes), a black-outlined ball, and an actual triangular
-pennant (baked at 24x14, matching its draw size for a clean 1:1 blit) in
-place of the old bordered-rectangle flag. The pennant now also *moves*:
-`game.flagY` tracks its own descent, entirely independent of wherever Mario
-actually grabbed the pole - it always starts at `FLAG_TOP_Y` (reset there in
-`resetLevel()`/`checkFlagpole()`) and both it and the player move during the
-`'flagSlide'` state at the exact same `FLAG_SLIDE_SPEED` (px/ms, derived
-from how long a full-height slide should take). Since the flag's distance
-to travel is fixed (always from the top) while Mario's varies with wherever
-he actually grabbed, this one shared speed is what makes grabbing near the
-top land them together and grabbing lower down land Mario first, with the
-flag clamped in place once each of them individually reaches their own
-resting `Y` - the state doesn't advance to `finishFlagpole()` until *both*
-have arrived, not just Mario.
+pennant in place of the old bordered-rectangle flag. The pennant has
+"901" (the scavenger hunt's world number, matching the HUD's "WORLD 9-0-1")
+baked into it in a blocky 5x7 pixel font, black-on-white - baked at 26x21
+(`FLAG_WIDTH`/`FLAG_HEIGHT` in `main.js`, up from an earlier plain-pennant
+version's 24x14 specifically so the digits have room to be legible),
+matching its draw size for a clean 1:1 blit. Unlike a plain triangular
+pennant, the text needs a solid rectangular field to sit in without the
+diagonal cutting into any digit - only the sprite's *lower* rows taper to
+the classic swallow-tail point, rows above that are a full-width rectangle
+sized to exactly fit the text plus a small margin. `FLAG_BOTTOM_Y` derives
+from `FLAG_HEIGHT` (`GROUND_ROW * TILE - FLAG_HEIGHT`) rather than a
+hardcoded number, so a future resize of the flag doesn't silently leave a
+gap (or overlap) between its bottom edge and the ground line. The pennant
+now also *moves*: `game.flagY` tracks its own descent, entirely independent
+of wherever Mario actually grabbed the pole - it always starts at
+`FLAG_TOP_Y` (reset there in `resetLevel()`/`checkFlagpole()`) and both it
+and the player move during the `'flagSlide'` state at the exact same
+`FLAG_SLIDE_SPEED` (px/ms, derived from how long a full-height slide should
+take). Since the flag's distance to travel is fixed (always from the top)
+while Mario's varies with wherever he actually grabbed, this one shared
+speed is what makes grabbing near the top land them together and grabbing
+lower down land Mario first, with the flag clamped in place once each of
+them individually reaches their own resting `Y` - the state doesn't advance
+to `finishFlagpole()` until *both* have arrived, not just Mario.
 
 **Enemy spawn placement (`groundSurfaceRowAt`).** Spawn columns in
 `ENTITY_SPAWNS` aren't all flat ground (some sit on stair terrain, and some
