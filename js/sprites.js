@@ -700,42 +700,40 @@ const flagpoleTile = M([
   '.......gg.......',
 ], PAL.flagpole);
 
-// A pennant with "901" (the scavenger hunt's world number, matching the
-// HUD's "WORLD 9-0-1") baked right into the flag in a simple blocky 5x7
-// pixel-font, black-on-white for maximum contrast. Unlike a plain
-// triangular pennant, this needs a solid rectangular field for the digits
-// to sit in without the diagonal cutting into any of them - rows 0-10 are
-// a full-width rectangle (holds the text, plus a 2px margin above/below
-// it), and only rows 11-20 taper down to a point, giving the classic
-// swallow-tail pennant tail below the text instead of from the very top.
-// Baked at 26x21 (up from the old plain pennant's 24x14 - the extra size
-// is specifically so the digits have room to be legible) to match the
-// size it's actually drawn at (see drawLevel() in main.js, FLAG_WIDTH/
-// FLAG_HEIGHT) for a clean 1:1 blit, same reasoning as the goomba/
-// mushroom redesigns. Written as literal numbers here rather than shared
-// constants - like PIPE_W/PIPE_H below, this file loads before main.js
-// and can't read its top-level consts yet.
+// A genuine triangular pennant (not a rectangle-with-a-tail) with "901"
+// (the scavenger hunt's world number, matching the HUD's "WORLD 9-0-1")
+// baked right in, in a compact blocky 3x5 pixel-font, black-on-white for
+// maximum contrast. The pole-side edge (the sprite's right column) is
+// solid for the full height, same as a plain pennant; the *left* point is
+// a single vertex around the vertical middle (row 7 of 15) rather than at
+// a top or bottom corner - both the top and bottom edges slope inward to
+// meet it, which is what keeps this a true triangle instead of the
+// flat-topped/swallow-tailed shape an earlier version of this had. The
+// text sits centered on that middle row: a 3-wide (not 5-wide) digit font
+// specifically so it's compact enough that even the text block's own top
+// and bottom rows stay within the triangle's rapidly-narrowing width that
+// close to its point - a wider font would need either a taller or a much
+// wider sprite to avoid the diagonal cutting into the digits. Baked at
+// 26x15 (matching the size it's actually drawn at, see drawLevel() in
+// main.js's FLAG_WIDTH/FLAG_HEIGHT) for a clean 1:1 blit, same reasoning
+// as the goomba/mushroom redesigns. Written as literal numbers here
+// rather than shared constants - like PIPE_W/PIPE_H below, this file
+// loads before main.js and can't read its top-level consts yet.
 const flagSprite = M([
-  'wwwwwwwwwwwwwwwwwwwwwwwwww',
-  'wwwwwwwwwwwwwwwwwwwwwwwwww',
-  'wwwwwkkkwwwkkkwwwwkwwwwwww',
-  'wwwwkwwwkwkwwwkwwkkwwwwwww',
-  'wwwwkwwwkwkwwwkwwwkwwwwwww',
-  'wwwwwkkkkwkwwwkwwwkwwwwwww',
-  'wwwwwwwwkwkwwwkwwwkwwwwwww',
-  'wwwwkwwwkwkwwwkwwwkwwwwwww',
-  'wwwwwkkkwwwkkkwwwkkkwwwwww',
-  'wwwwwwwwwwwwwwwwwwwwwwwwww',
-  'wwwwwwwwwwwwwwwwwwwwwwwwww',
-  'wwwwwwwwwwwwwwwwwwwwwwwwww',
-  '...wwwwwwwwwwwwwwwwwwwwwww',
-  '......wwwwwwwwwwwwwwwwwwww',
-  '........wwwwwwwwwwwwwwwwww',
+  '.........................w',
+  '.....................wwwww',
+  '..................wwwwwwww',
+  '..............wwwwwwwwwwww',
+  '...........wwwwwwwwwwwwwww',
+  '.......wwkkkwkkkwwkwwwwwww',
+  '....wwwwwkwkwkwkwkkwwwwwww',
+  'wwwwwwwwwkkkwkwkwwkwwwwwww',
+  '....wwwwwwwkwkwkwwkwwwwwww',
+  '.......wwkkkwkkkwkkkwwwwww',
   '...........wwwwwwwwwwwwwww',
   '..............wwwwwwwwwwww',
-  '.................wwwwwwwww',
-  '...................wwwwwww',
-  '......................wwww',
+  '..................wwwwwwww',
+  '.....................wwwww',
   '.........................w',
 ], PAL.flagpole);
 

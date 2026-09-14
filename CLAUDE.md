@@ -280,17 +280,26 @@ brighter green pole/ball (own dedicated `PAL.flagpole`, so it doesn't affect
 `PAL.misc`'s green bushes), a black-outlined ball, and an actual triangular
 pennant in place of the old bordered-rectangle flag. The pennant has
 "901" (the scavenger hunt's world number, matching the HUD's "WORLD 9-0-1")
-baked into it in a blocky 5x7 pixel font, black-on-white - baked at 26x21
-(`FLAG_WIDTH`/`FLAG_HEIGHT` in `main.js`, up from an earlier plain-pennant
-version's 24x14 specifically so the digits have room to be legible),
-matching its draw size for a clean 1:1 blit. Unlike a plain triangular
-pennant, the text needs a solid rectangular field to sit in without the
-diagonal cutting into any digit - only the sprite's *lower* rows taper to
-the classic swallow-tail point, rows above that are a full-width rectangle
-sized to exactly fit the text plus a small margin. `FLAG_BOTTOM_Y` derives
-from `FLAG_HEIGHT` (`GROUND_ROW * TILE - FLAG_HEIGHT`) rather than a
-hardcoded number, so a future resize of the flag doesn't silently leave a
-gap (or overlap) between its bottom edge and the ground line. The pennant
+baked into it in a compact blocky 3x5 pixel font, black-on-white - baked at
+26x15 (`FLAG_WIDTH`/`FLAG_HEIGHT` in `main.js`, up from an earlier
+plain-pennant version's 24x14, just enough taller to fit the text) matching
+its draw size for a clean 1:1 blit. **Gotcha already hit once:** a first
+attempt at fitting the text used a 5x7 font in a flat-topped, swallow-tailed
+shape (a full-width rectangle at the top holding the text, tapering to a
+point only in the lower rows) rather than a true triangle - visually wrong
+once pointed out, since it no longer read as the classic pennant shape at
+all. The real fix keeps a genuine triangle: the sprite's left point is a
+single vertex near the vertical middle (not a top or bottom corner), with
+*both* the top and bottom edges sloping inward to meet it, and the
+pole-side (right) edge solid for the full height same as any pennant. That
+shape only has real width to spare very close to the middle row, which is
+why the font shrank from 5x7 to a more compact 3x5 - a wider font would
+need a much taller (or much wider) sprite than 26x15 to keep the diagonal
+from cutting into the text's own top/bottom rows so close to the point.
+`FLAG_BOTTOM_Y` derives from `FLAG_HEIGHT` (`GROUND_ROW * TILE -
+FLAG_HEIGHT`) rather than a hardcoded number, so a future resize of the
+flag doesn't silently leave a gap (or overlap) between its bottom edge and
+the ground line. The pennant
 now also *moves*: `game.flagY` tracks its own descent, entirely independent
 of wherever Mario actually grabbed the pole - it always starts at
 `FLAG_TOP_Y` (reset there in `resetLevel()`/`checkFlagpole()`) and both it

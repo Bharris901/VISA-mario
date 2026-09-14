@@ -80,7 +80,7 @@ function resetLevelTiles() {
 // baked with the "901" text already sized to fit at exactly this draw
 // size, so this is a 1:1 blit, not a scale-up.
 const FLAG_WIDTH = 26;
-const FLAG_HEIGHT = 21;
+const FLAG_HEIGHT = 15;
 const FLAG_TOP_Y = FLAG_TOP_ROW * TILE + 4; // matches the flag sprite's draw offset from the pole top
 const FLAG_BOTTOM_Y = GROUND_ROW * TILE - FLAG_HEIGHT; // rests with its bottom edge at the ground line
 const FLAG_SLIDE_MS = 650; // time a full-height slide (grabbed at the very top) takes
