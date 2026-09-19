@@ -9,8 +9,8 @@ const CLUE_MESSAGE =
   '<span class="message-heading">Congrats Memphis Mario!</span>\n\n' +
   "To receive your next clue:\n\n" +
   "1. Go to Dim Sum King\n" +
-  "2. Sit down & eat lunch with your team\n" +
-  "3. When you order your lunch, show the server the playing card in your bag";
+  "2. When you ask for a table, show your playing card and tell them you're with VISA\n" +
+  "3. Sit down & eat lunch with your team";
 
 // Shown on a second, dedicated screen (UI.showLunchNote) right after the
 // clue message above - a wide "character + speech bubble" layout rather
