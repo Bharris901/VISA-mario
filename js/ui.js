@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 const UI = {
-  scoreEl: null, coinEl: null, timeEl: null, livesEl: null, worldEl: null,
+  scoreEl: null, coinEl: null, livesEl: null, worldEl: null,
   messageOverlay: null, messageText: null, messageBtn: null, messageIcon: null,
   coinIconEl: null,
   lunchNoteOverlay: null, lunchNoteText: null, lunchNoteBtn: null,
@@ -11,7 +11,6 @@ const UI = {
   init() {
     this.scoreEl = document.getElementById('hud-score');
     this.coinEl = document.getElementById('hud-coin-count');
-    this.timeEl = document.getElementById('hud-time-num');
     this.livesEl = document.getElementById('hud-lives');
     this.worldEl = document.getElementById('hud-world');
     this.messageOverlay = document.getElementById('message-overlay');
@@ -38,7 +37,6 @@ const UI = {
   updateHud(state) {
     this.scoreEl.textContent = String(state.score).padStart(6, '0');
     this.coinEl.textContent = String(state.coins).padStart(2, '0');
-    this.timeEl.textContent = String(Math.max(0, Math.ceil(state.timeLeft)));
     this.livesEl.textContent = String(state.livesDisplay);
   },
 

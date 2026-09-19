@@ -96,7 +96,6 @@ const game = {
   score: 0,
   coins: 0,
   extraLives: 0,
-  timeLeft: 400,
   clueFound: false,
   deathCount: 0,
   pipeAnimTimer: 0,
@@ -117,7 +116,6 @@ function resetLevel() {
   game.score = 0;
   game.coins = 0;
   game.extraLives = 0;
-  game.timeLeft = 400;
   game.clueFound = false;
   game.cameraX = 0;
   game.beale = null;
@@ -910,16 +908,10 @@ function update(dt) {
     checkEnemyCollisions();
     checkFlagpole();
 
-    game.timeLeft -= (dt / 1000) * 2.5;
-    if (game.timeLeft <= 0 && !game.player.dead) {
-      game.timeLeft = 0;
-      world.onPlayerDeath('time');
-    }
-
     const targetCam = game.player.x - VIEW_W / 2 + 40;
     game.cameraX = Math.max(0, Math.min(targetCam, LEVEL_PIXEL_WIDTH - VIEW_W));
     const baseLives = (3 - (game.deathCount % 3)) || 3;
-    UI.updateHud({ score: game.score, coins: game.coins, timeLeft: game.timeLeft, livesDisplay: baseLives + game.extraLives });
+    UI.updateHud({ score: game.score, coins: game.coins, livesDisplay: baseLives + game.extraLives });
   }
   else if (game.state === 'pipeEnter') {
     game.pipeAnimTimer += dt;

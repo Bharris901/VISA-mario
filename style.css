@@ -59,7 +59,6 @@ html, body {
   vertical-align: middle;
 }
 .hud-mid { flex: 1; text-align: center; }
-.hud-right { display: flex; gap: 6px; }
 
 /* Hide the main-level HUD/D-pad/JUMP/DESCEND for the whole hidden Beale St
    scene - Mario and the treasure chest are both fixed in place there (card

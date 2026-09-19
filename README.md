@@ -71,8 +71,8 @@ doing nothing silently.
   a ledge.
 - **Jump buffering** — a jump tapped slightly early still fires the moment
   you land.
-- **No game over, ever** — dying (falling in a pit, an enemy hit while
-  small, or time running out) cuts the background music and plays a short
+- **No game over, ever** — dying (falling in a pit, or an enemy hit while
+  small) cuts the background music and plays a short
   death sting, then shows a "Try again Memphis Mario!" screen (with an
   8-bit X-eyes face) and a Start Over button. Music stays off until Start
   Over restarts it fresh. There's no fail state that stops play, just a

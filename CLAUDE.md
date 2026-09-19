@@ -778,6 +778,15 @@ since those clusters are deliberately tuned around the high/low choice
 spots (see "Enemy clustering" above) and adding a different enemy type
 there would muddy that tuning.
 
+**No time limit.** The level used to have a countdown (`game.timeLeft`,
+starting at 400, shown as `TIME` in the HUD) that killed the player via
+`world.onPlayerDeath('time')` at zero. That's been removed entirely, not
+just disarmed - `timeLeft` is gone from `game`, the countdown/death check
+in `update()` is gone, and the `TIME`/`hud-time-num` HUD elements are gone
+from `index.html` (along with the now-unused `.hud-right` rule in
+`style.css`). `world.onPlayerDeath(reason)` is only ever called with
+`'pit'` or `'enemy'` now.
+
 **Design invariant to preserve:** there is no game-over state. Every death
 path funnels through `world.onPlayerDeath(reason)`, which shows a "Try again
 Memphis Mario!" message (via `UI.showMessage`, with the grimace-face icon)
